@@ -7,8 +7,8 @@ body {
     padding: 10px 15px;
     max-width: 800px;
     margin: 0 auto;
-    background-color: #1a1a1a; /* 黒基調 */
-    color: #fff;
+    background-color: #0a0a0a; /* 漆黒に近い背景 */
+    color: #fcfcfc;
 }
 
 h1 {
@@ -21,12 +21,12 @@ h1 {
 }
 
 .container {
-    padding: 15px;
-    background-color: #222;
+    padding: 20px;
+    background-color: #1a1a1a;
     border: 3px solid #fff;
     border-radius: 12px;
     box-shadow: 6px 6px 0px #00e5ff;
-    margin-bottom: 15px;
+    margin-bottom: 20px;
 }
 
 .error-msg {
@@ -63,14 +63,15 @@ h1 {
 }
 
 .explanation {
-    margin-top: 12px;
-    padding: 10px 15px;
-    background-color: #333;
+    margin-top: 15px;
+    padding: 15px;
+    background-color: #111;
     border: 3px solid #fff;
     border-radius: 8px;
-    box-shadow: 4px 4px 0px #e6004c;
+    box-shadow: 4px 4px 0px #ff0055;
     display: none;
-    line-height: 1.5;
+    line-height: 1.6;
+    font-size: 15px;
 }
 
 .result-message {
@@ -249,3 +250,67 @@ select:focus, input:focus {
     .inline-input { width: 90px; }
     .word-chip { padding: 10px 14px; }
 }
+
+/* ---- 結果表示と音声ボタンのUI ---- */
+.result-incorrect {
+    font-size: 1.5em;
+    font-weight: 900;
+    margin-bottom: 5px;
+    color: #ff0055;
+}
+
+.result-correct {
+    font-size: 1.5em;
+    font-weight: 900;
+    margin-bottom: 5px;
+    color: #00e5ff;
+}
+
+.result-sentence {
+    font-size: 1.1em;
+    color: #fff;
+    font-weight: bold;
+    margin-top: 5px;
+    padding: 12px;
+    background-color: #111;
+    border: 2px dashed #777;
+    border-radius: 8px;
+    line-height: 1.5;
+}
+
+.highlight-answer {
+    color: #ff3366; /* 鮮明な赤系ピンク */
+    font-weight: 900;
+    font-size: 1.1em;
+    padding: 0 4px;
+    text-decoration: underline;
+    text-decoration-color: #ff3366;
+    text-underline-offset: 4px;
+    text-shadow: 0 0 8px rgba(255, 51, 102, 0.5);
+}
+
+.play-audio-btn {
+    margin-top: 15px;
+    padding: 8px 16px;
+    font-size: 15px;
+    background-color: #00d26a; /* 視認性の高いグリーン */
+    color: #fff; 
+    border: 3px solid #fff; 
+    font-weight: bold; 
+    border-radius: 8px; 
+    box-shadow: 4px 4px 0px #007a3d; 
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: transform 0.1s, box-shadow 0.1s;
+}
+
+.play-audio-btn:active {
+    transform: translate(3px, 3px);
+    box-shadow: 1px 1px 0px #007a3d;
+}
+
+.play-audio-btn:hover {
+    background-color: #00e676;
+}

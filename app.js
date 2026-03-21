@@ -335,29 +335,27 @@ function checkAnswer() {
     if (!englishText || englishText.length < 2) englishText = q.answer;
 
     // 画面表示用（正解部分を赤字にしたHTML）
-    let answerSentenceHtml = q.text.replace(/\(\s*\)/g, `<span style="color: #ff0055; font-weight: bold;">${q.answer}</span>`);
-    answerSentenceHtml = answerSentenceHtml.replace(/\[\s*.*?\s*\]/g, `<span style="color: #ff0055; font-weight: bold;">${q.answer}</span>`);
+    let answerSentenceHtml = q.text.replace(/\(\s*\)/g, `<span class="highlight-answer">${q.answer}</span>`);
+    answerSentenceHtml = answerSentenceHtml.replace(/\[\s*.*?\s*\]/g, `<span class="highlight-answer">${q.answer}</span>`);
     answerSentenceHtml = answerSentenceHtml.replace(/\([^)]*[ぁ-んァ-ン一-龥]+[^)]*\)/g, '').trim();
     if (!answerSentenceHtml || answerSentenceHtml.length < 2) {
-        answerSentenceHtml = `<span style="color: #ff0055; font-weight: bold;">${q.answer}</span>`;
+        answerSentenceHtml = `<span class="highlight-answer">${q.answer}</span>`;
     }
 
     const resultMsg = document.getElementById('result-message');
     
     if (isCorrect) {
         correctCount++;
-        resultMsg.innerHTML = `<div style="font-size: 1.2em; font-weight: bold; margin-bottom: 5px;">⭕ 正解！</div>`;
-        resultMsg.style.color = "#00e5ff"; // ネオンシアン
+        resultMsg.innerHTML = `<div class="result-correct">⭕ 正解！</div>`;
         
         // 正解した場合はミスリストから除外して保存
         mistakes = mistakes.filter(m => m.id !== q.id);
         localStorage.setItem('english_quiz_mistakes', JSON.stringify(mistakes));
     } else {
         resultMsg.innerHTML = `
-            <div style="font-size: 1.2em; font-weight: bold; margin-bottom: 5px;">❌ 不正解</div>
-            <div style="font-size: 1em; color: #fff; font-weight: normal; margin-top: 5px;">正解: ${answerSentenceHtml}</div>
+            <div class="result-incorrect">❌ 不正解</div>
+            <div class="result-sentence">正解: ${answerSentenceHtml}</div>
         `;
-        resultMsg.style.color = "#ff0055"; // ホットピンク
         
         // 不正解の場合はミスリストに追加（重複しないように）
         if (!mistakes.some(m => m.id === q.id)) {
@@ -371,10 +369,9 @@ function checkAnswer() {
     // シングルクォートなどがJS文字列内でエラーにならないようにエスケープ
     const escapedText = englishText.replace(/'/g, "\\'");
     
-    // ボタンのテーマカラーを緑色（ネオングリーン）に変更
-    const playBtnHtml = `<button onclick="playAudio('${escapedText}')" class="secondary-btn" style="margin-top: 10px; padding: 5px 15px; font-size: 14px; background-color: #00ff66; color: #000; border: none; font-weight: bold; border-radius: 4px; box-shadow: 2px 2px 0px #00b347; cursor: pointer;">🔊 英文を読み上げる</button>`;
+    const playBtnHtml = `<button onclick="playAudio('${escapedText}')" class="play-audio-btn">🔊 英文を読み上げる</button>`;
 
-    expArea.innerHTML = `<strong>解説:</strong><br>${q.exp}<br>${playBtnHtml}`;
+    expArea.innerHTML = `<strong style="font-size: 1.1em; color: #ffeb3b;">解説:</strong><br><div style="margin-top: 5px;">${q.exp}</div>${playBtnHtml}`;
     expArea.style.display = 'block';
 
     document.getElementById('check-btn').style.display = 'none';
