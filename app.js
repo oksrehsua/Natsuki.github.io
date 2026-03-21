@@ -14,6 +14,42 @@ window.addEventListener('DOMContentLoaded', () => {
             document.getElementById('review-btn').textContent = `間違えた問題に再挑戦する (${mistakes.length}問)`;
         }
     }
+
+    // CSVファイル選択時にタグのプルダウンを更新する
+    const csvFileInput = document.getElementById('csv-file');
+    if (csvFileInput) {
+        csvFileInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(evt) {
+                const text = evt.target.result;
+                const rows = parseCSV(text);
+                const tagsSet = new Set();
+                for (let i = 1; i < rows.length; i++) {
+                    const r = rows[i];
+                    if (r.length < 7) continue;
+                    const tagStr = r[8] || "";
+                    if (tagStr) {
+                        const tags = tagStr.split(',').map(t => t.trim()).filter(t => t);
+                        tags.forEach(t => tagsSet.add(t));
+                    }
+                }
+                const tagSelect = document.getElementById('tag-select');
+                if (tagSelect) {
+                    tagSelect.innerHTML = '<option value="">すべてのタグ</option>';
+                    const sortedTags = Array.from(tagsSet).sort();
+                    sortedTags.forEach(tag => {
+                        const option = document.createElement('option');
+                        option.value = tag;
+                        option.textContent = tag;
+                        tagSelect.appendChild(option);
+                    });
+                }
+            };
+            reader.readAsText(file);
+        });
+    }
 });
 
 function startReviewMode() {
@@ -85,8 +121,8 @@ function startQuiz() {
     const errorMsg = document.getElementById('setup-error');
     const selectedLevel = document.getElementById('level-select').value;
     const selectedFormat = document.getElementById('format-select').value;
-    const tagInputVal = document.getElementById('tag-input').value.trim().toLowerCase();
-    const filterTags = tagInputVal ? tagInputVal.split(',').map(t => t.trim()).filter(t => t) : [];
+    const tagSelectVal = document.getElementById('tag-select').value.trim().toLowerCase();
+    const filterTags = tagSelectVal ? [tagSelectVal] : [];
 
     if (!fileInput.files.length) {
         errorMsg.textContent = "CSVファイルを選択してください。";
