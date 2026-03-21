@@ -328,18 +328,35 @@ function checkAnswer() {
         isCorrect = true; 
     }
 
+    // --- 表示・音声用の正解テキスト作成 ---
+    // 音声読み上げ用（タグなし純粋なテキスト）
+    let englishText = q.text.replace(/\(\s*\)/g, q.answer).replace(/\[\s*.*?\s*\]/g, q.answer);
+    englishText = englishText.replace(/\([^)]*[ぁ-んァ-ン一-龥]+[^)]*\)/g, '').trim();
+    if (!englishText || englishText.length < 2) englishText = q.answer;
+
+    // 画面表示用（正解部分を赤字にしたHTML）
+    let answerSentenceHtml = q.text.replace(/\(\s*\)/g, `<span style="color: #ff0055; font-weight: bold;">${q.answer}</span>`);
+    answerSentenceHtml = answerSentenceHtml.replace(/\[\s*.*?\s*\]/g, `<span style="color: #ff0055; font-weight: bold;">${q.answer}</span>`);
+    answerSentenceHtml = answerSentenceHtml.replace(/\([^)]*[ぁ-んァ-ン一-龥]+[^)]*\)/g, '').trim();
+    if (!answerSentenceHtml || answerSentenceHtml.length < 2) {
+        answerSentenceHtml = `<span style="color: #ff0055; font-weight: bold;">${q.answer}</span>`;
+    }
+
     const resultMsg = document.getElementById('result-message');
     
     if (isCorrect) {
         correctCount++;
-        resultMsg.textContent = "⭕ 正解！";
+        resultMsg.innerHTML = `<div style="font-size: 1.2em; font-weight: bold; margin-bottom: 5px;">⭕ 正解！</div>`;
         resultMsg.style.color = "#00e5ff"; // ネオンシアン
         
         // 正解した場合はミスリストから除外して保存
         mistakes = mistakes.filter(m => m.id !== q.id);
         localStorage.setItem('english_quiz_mistakes', JSON.stringify(mistakes));
     } else {
-        resultMsg.textContent = `❌ 不正解... (正解: ${q.answer})`;
+        resultMsg.innerHTML = `
+            <div style="font-size: 1.2em; font-weight: bold; margin-bottom: 5px;">❌ 不正解</div>
+            <div style="font-size: 1em; color: #fff; font-weight: normal; margin-top: 5px;">正解: ${answerSentenceHtml}</div>
+        `;
         resultMsg.style.color = "#ff0055"; // ホットピンク
         
         // 不正解の場合はミスリストに追加（重複しないように）
@@ -351,15 +368,11 @@ function checkAnswer() {
 
     const expArea = document.getElementById('explanation-area');
     
-    // 英文を合成する（( )を正解に置換し、日本語のカッコ書きを削除）
-    let englishText = q.text.replace(/\(\s*\)/g, q.answer).replace(/\[\s*.*?\s*\]/g, q.answer);
-    englishText = englishText.replace(/\([^)]*[ぁ-んァ-ン一-龥]+[^)]*\)/g, '').trim();
-    if (!englishText || englishText.length < 2) englishText = q.answer;
-
     // シングルクォートなどがJS文字列内でエラーにならないようにエスケープ
     const escapedText = englishText.replace(/'/g, "\\'");
     
-    const playBtnHtml = `<button onclick="playAudio('${escapedText}')" class="secondary-btn" style="margin-top: 10px; padding: 5px 15px; font-size: 14px; background-color: #00e5ff; color: #000; border: none; font-weight: bold; border-radius: 4px; box-shadow: 2px 2px 0px #ff0055; cursor: pointer;">🔊 英文を読み上げる</button>`;
+    // ボタンのテーマカラーを緑色（ネオングリーン）に変更
+    const playBtnHtml = `<button onclick="playAudio('${escapedText}')" class="secondary-btn" style="margin-top: 10px; padding: 5px 15px; font-size: 14px; background-color: #00ff66; color: #000; border: none; font-weight: bold; border-radius: 4px; box-shadow: 2px 2px 0px #00b347; cursor: pointer;">🔊 英文を読み上げる</button>`;
 
     expArea.innerHTML = `<strong>解説:</strong><br>${q.exp}<br>${playBtnHtml}`;
     expArea.style.display = 'block';
