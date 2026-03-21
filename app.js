@@ -350,7 +350,18 @@ function checkAnswer() {
     }
 
     const expArea = document.getElementById('explanation-area');
-    expArea.innerHTML = `<strong>解説:</strong><br>${q.exp}`;
+    
+    // 英文を合成する（( )を正解に置換し、日本語のカッコ書きを削除）
+    let englishText = q.text.replace(/\(\s*\)/g, q.answer).replace(/\[\s*.*?\s*\]/g, q.answer);
+    englishText = englishText.replace(/\([^)]*[ぁ-んァ-ン一-龥]+[^)]*\)/g, '').trim();
+    if (!englishText || englishText.length < 2) englishText = q.answer;
+
+    // シングルクォートなどがJS文字列内でエラーにならないようにエスケープ
+    const escapedText = englishText.replace(/'/g, "\\'");
+    
+    const playBtnHtml = `<button onclick="playAudio('${escapedText}')" class="secondary-btn" style="margin-top: 10px; padding: 5px 15px; font-size: 14px; background-color: #00e5ff; color: #000; border: none; font-weight: bold; border-radius: 4px; box-shadow: 2px 2px 0px #ff0055; cursor: pointer;">🔊 英文を読み上げる</button>`;
+
+    expArea.innerHTML = `<strong>解説:</strong><br>${q.exp}<br>${playBtnHtml}`;
     expArea.style.display = 'block';
 
     document.getElementById('check-btn').style.display = 'none';
@@ -405,3 +416,33 @@ document.addEventListener('keydown', function(event) {
         }
     }
 });
+
+// --- 音声読み上げ機能 (Web Speech API) ---
+function playAudio(text) {
+    if (!('speechSynthesis' in window)) {
+        alert("お使いのブラウザは音声読み上げに対応していません。");
+        return;
+    }
+    
+    // 再生中の音声をキャンセル
+    window.speechSynthesis.cancel();
+    
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = 'en-US';
+    
+    // 可能であればネイティブに近くて自然なオンライン音声を探す
+    const voices = window.speechSynthesis.getVoices();
+    const onlineVoice = voices.find(v => v.lang === 'en-US' && (v.name.includes('Online') || v.name.includes('Google')));
+    if (onlineVoice) {
+        utterance.voice = onlineVoice;
+    }
+    
+    window.speechSynthesis.speak(utterance);
+}
+
+// 初回発音の遅延を防ぐために、あらかじめvoiceのリストを読み込んでおく
+if ('speechSynthesis' in window) {
+    window.speechSynthesis.onvoiceschanged = () => {
+        window.speechSynthesis.getVoices();
+    };
+}
