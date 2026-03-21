@@ -207,7 +207,7 @@ function displayQuestion() {
             inputArea.appendChild(answerArea);
             inputArea.appendChild(wordBank);
         }
-    } else if (q.format === "穴埋め") {
+    } else if (q.format === "穴埋め" || q.format === "英単語") {
         const parts = q.text.split('( )');
         // IDの重複バグを修正（classで指定するように変更）
         qTextEl.innerHTML = parts.join('<input type="text" class="text-answer inline-input" autocomplete="off">');
@@ -253,7 +253,7 @@ function checkAnswer() {
     } else if (q.format === "並べ替え") {
         const chips = document.getElementById('sort-answer-area').children;
         userAnswer = Array.from(chips).map(c => c.textContent).join(' ');
-    } else if (q.format === "穴埋め") {
+    } else if (q.format === "穴埋め" || q.format === "英単語") {
         // 複数の穴埋め枠があるバグを修正（すべての枠の文字を結合して比較）
         const inputs = document.querySelectorAll('.text-answer');
         let answers = [];
@@ -271,7 +271,7 @@ function checkAnswer() {
     
     // 穴埋め問題で「文全体」を入力してしまった場合も正解扱いにする救済処理
     let isCorrect = (cleanUser === cleanCorrect);
-    if (!isCorrect && q.format === "穴埋め" && cleanUser.includes(cleanCorrect) && cleanUser.length > cleanCorrect.length) {
+    if (!isCorrect && (q.format === "穴埋め" || q.format === "英単語") && cleanUser.includes(cleanCorrect) && cleanUser.length > cleanCorrect.length) {
         // ユーザーの入力内容の中に、正解の単語が含まれていればOKとする
         isCorrect = true; 
     }
