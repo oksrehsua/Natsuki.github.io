@@ -273,36 +273,6 @@ function displayQuestion() {
                 inputArea.appendChild(label);
             });
         }
-    } else if (q.format === "並べ替え") {
-        qTextEl.textContent = "次の語句を正しい順序に並べてください。";
-        const match = q.text.match(/\[\s*(.*?)\s*\]/);
-        if (match) {
-            const words = match[1].split('/').map(s => s.trim()).filter(s => s);
-            
-            const answerArea = document.createElement('div');
-            answerArea.className = 'answer-area';
-            answerArea.id = 'sort-answer-area';
-            
-            const wordBank = document.createElement('div');
-            wordBank.id = 'sort-word-bank';
-            
-            words.forEach(word => {
-                const chip = document.createElement('span');
-                chip.className = 'word-chip';
-                chip.textContent = word;
-                chip.onclick = function() {
-                    if (this.parentElement.id === 'sort-word-bank') {
-                        answerArea.appendChild(this);
-                    } else {
-                        wordBank.appendChild(this);
-                    }
-                };
-                wordBank.appendChild(chip);
-            });
-            
-            inputArea.appendChild(answerArea);
-            inputArea.appendChild(wordBank);
-        }
     } else if (q.format === "穴埋め" || q.format === "英単語") {
         const parts = q.text.split('( )');
         // IDの重複バグを修正（classで指定するように変更）
@@ -346,9 +316,6 @@ function checkAnswer() {
     if (q.format === "選択問題") {
         const selected = document.querySelector('input[name="answer"]:checked');
         userAnswer = selected ? selected.value : "";
-    } else if (q.format === "並べ替え") {
-        const chips = document.getElementById('sort-answer-area').children;
-        userAnswer = Array.from(chips).map(c => c.textContent).join(' ');
     } else if (q.format === "穴埋め" || q.format === "英単語") {
         // 複数の穴埋め枠があるバグを修正（すべての枠の文字を結合して比較）
         const inputs = document.querySelectorAll('.text-answer');
@@ -377,14 +344,33 @@ function checkAnswer() {
     // 日本語を含まない「スラッシュ入りのカッコ」を対象にする
     const choiceRegex = /\([^)ぁ-んァ-ン一-龥]*?\/[^)ぁ-んァ-ン一-龥]*?\)/g;
 
+    // 複数の穴埋め枠がある場合、正解を単語ごとに分割して各枠に割り当てる
+    const blankCount = (q.text.match(/\(\s*\)/g) || []).length;
+    const answerWords = q.answer.split(/\s+/);
+
+    // 穴埋め枠を1つずつ置換するヘルパー関数
+    function replaceBlanksByWord(text, replaceFn) {
+        if (blankCount <= 1) {
+            return text.replace(/\(\s*\)/g, replaceFn(q.answer));
+        }
+        let wordIdx = 0;
+        return text.replace(/\(\s*\)/g, () => {
+            const word = wordIdx < answerWords.length ? answerWords[wordIdx] : '';
+            wordIdx++;
+            return replaceFn(word);
+        });
+    }
+
     // 音声読み上げ用（タグなし純粋なテキスト）
-    let englishText = q.text.replace(choiceRegex, q.answer).replace(/\(\s*\)/g, q.answer).replace(/\[\s*.*?\s*\]/g, q.answer);
+    let englishText = q.text.replace(choiceRegex, q.answer);
+    englishText = replaceBlanksByWord(englishText, w => w);
+    englishText = englishText.replace(/\[\s*.*?\s*\]/g, q.answer);
     englishText = englishText.replace(/\([^)]*[ぁ-んァ-ン一-龥]+[^)]*\)/g, '').trim();
     if (!englishText || englishText.length < 2) englishText = q.answer;
 
     // 画面表示用（正解部分を赤字にしたHTML）
     let answerSentenceHtml = q.text.replace(choiceRegex, `<span class="highlight-answer">${q.answer}</span>`);
-    answerSentenceHtml = answerSentenceHtml.replace(/\(\s*\)/g, `<span class="highlight-answer">${q.answer}</span>`);
+    answerSentenceHtml = replaceBlanksByWord(answerSentenceHtml, w => `<span class="highlight-answer">${w}</span>`);
     answerSentenceHtml = answerSentenceHtml.replace(/\[\s*.*?\s*\]/g, `<span class="highlight-answer">${q.answer}</span>`);
     answerSentenceHtml = answerSentenceHtml.replace(/\([^)]*[ぁ-んァ-ン一-龥]+[^)]*\)/g, '').trim();
     if (!answerSentenceHtml || answerSentenceHtml.length < 2) {
