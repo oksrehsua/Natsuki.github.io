@@ -4,6 +4,23 @@ let currentIndex = 0;
 let correctCount = 0;
 let mistakes = [];
 let isReviewMode = false;
+let loadedFileName = '';
+
+// app-areaの初期HTMLを保持（結果画面で上書きされるため復元用）
+const appAreaOriginalHTML = `
+    <div id="progress" style="margin-bottom: 10px; color: #666;"></div>
+    <span id="format-badge" class="badge format-badge"></span>
+    <span id="level-badge" class="badge level-badge"></span>
+    <h3 id="question-text" style="margin-top: 10px;"></h3>
+    <div id="input-area"></div>
+    <button id="check-btn" onclick="checkAnswer()">解答する</button>
+    <div id="result-message" class="result-message"></div>
+    <div id="explanation-area" class="explanation"></div>
+    <button id="next-btn" onclick="nextQuestion()" style="display: none;">次の問題へ</button>
+    <div style="margin-top: 30px; border-top: 1px solid #ddd; padding-top: 15px;">
+        <button onclick="resetToSetup()" class="secondary-btn">ファイル選択に戻る</button>
+    </div>
+`;
 
 window.addEventListener('DOMContentLoaded', () => {
     const savedMistakes = localStorage.getItem('english_quiz_mistakes');
@@ -118,6 +135,29 @@ function resetMistakes() {
     }
 }
 
+function resetToSetup() {
+    // app-areaのHTMLを復元（結果画面で上書きされている可能性がある）
+    const appArea = document.getElementById('app-area');
+    appArea.innerHTML = appAreaOriginalHTML;
+    appArea.style.display = 'none';
+    document.getElementById('setup-area').style.display = 'block';
+
+    // 読み込み済みファイル名を表示
+    if (loadedFileName) {
+        const indicator = document.getElementById('loaded-file-indicator');
+        if (indicator) {
+            indicator.textContent = `✅ 読み込み済み: ${loadedFileName}（${allQuestions.length}問）`;
+            indicator.style.display = 'block';
+        }
+    }
+
+    // 間違えた問題の表示を更新
+    if (mistakes.length > 0) {
+        document.getElementById('review-area').style.display = 'block';
+        document.getElementById('review-btn').textContent = `間違えた問題に再挑戦する (${mistakes.length}問)`;
+    }
+}
+
 // CSVのパース処理（ダブルクォーテーション内のカンマ対応）
 function parseCSV(text) {
     const rows = [];
@@ -168,9 +208,16 @@ function startQuiz() {
     const tagSelectVal = document.getElementById('tag-select').value.trim().toLowerCase();
     const filterTags = tagSelectVal ? [tagSelectVal] : [];
 
-    if (!fileInput.files.length) {
+    // CSVが既に読み込まれていて、新しいファイルが選択されていない場合は再利用
+    if (!fileInput.files.length && allQuestions.length === 0) {
         errorMsg.textContent = "CSVファイルを選択してください。";
         errorMsg.style.display = 'inline-block';
+        return;
+    }
+
+    // 新しいファイルが選択されていない場合は既存データでクイズ開始
+    if (!fileInput.files.length && allQuestions.length > 0) {
+        startQuizWithQuestions(selectedLevel, selectedFormat, filterTags);
         return;
     }
 
@@ -199,43 +246,8 @@ function startQuiz() {
             });
         }
 
-        // レベルと形式で絞り込み
-        currentQuestions = allQuestions.filter(q => {
-            const levelMatch = selectedLevel === "all" || q.level === selectedLevel;
-            const formatMatch = selectedFormat === "all" || q.format === selectedFormat;
-            let tagMatch = true;
-            if (filterTags.length > 0) {
-                const lowerQTags = q.tags.toLowerCase();
-                tagMatch = filterTags.every(t => lowerQTags.includes(t));
-            }
-            return levelMatch && formatMatch && tagMatch;
-        });
-
-        if (currentQuestions.length === 0) {
-            errorMsg.textContent = "該当するレベルの問題がありません。";
-            errorMsg.style.display = 'inline-block';
-            return;
-        }
-
-        // ランダムに並べ替え
-        shuffleArray(currentQuestions);
-
-        // 出題数を絞る
-        const countInputVal = document.getElementById('count-input').value;
-        if (countInputVal.trim() !== "") {
-            const count = parseInt(countInputVal, 10);
-            if (!isNaN(count) && count > 0) {
-                currentQuestions = currentQuestions.slice(0, count);
-            }
-        }
-
-        document.getElementById('setup-area').style.display = 'none';
-        document.getElementById('app-area').style.display = 'block';
-        
-        currentIndex = 0;
-        correctCount = 0;
-        isReviewMode = false;
-        displayQuestion();
+        loadedFileName = file.name;
+        startQuizWithQuestions(selectedLevel, selectedFormat, filterTags);
     };
 
     reader.onerror = function() {
@@ -244,6 +256,48 @@ function startQuiz() {
     };
 
     reader.readAsText(file);
+}
+
+function startQuizWithQuestions(selectedLevel, selectedFormat, filterTags) {
+    const errorMsg = document.getElementById('setup-error');
+
+    // レベルと形式で絞り込み
+    currentQuestions = allQuestions.filter(q => {
+        const levelMatch = selectedLevel === "all" || q.level === selectedLevel;
+        const formatMatch = selectedFormat === "all" || q.format === selectedFormat;
+        let tagMatch = true;
+        if (filterTags.length > 0) {
+            const lowerQTags = q.tags.toLowerCase();
+            tagMatch = filterTags.every(t => lowerQTags.includes(t));
+        }
+        return levelMatch && formatMatch && tagMatch;
+    });
+
+    if (currentQuestions.length === 0) {
+        errorMsg.textContent = "該当するレベルの問題がありません。";
+        errorMsg.style.display = 'inline-block';
+        return;
+    }
+
+    // ランダムに並べ替え
+    shuffleArray(currentQuestions);
+
+    // 出題数を絞る
+    const countInputVal = document.getElementById('count-input').value;
+    if (countInputVal.trim() !== "") {
+        const count = parseInt(countInputVal, 10);
+        if (!isNaN(count) && count > 0) {
+            currentQuestions = currentQuestions.slice(0, count);
+        }
+    }
+
+    document.getElementById('setup-area').style.display = 'none';
+    document.getElementById('app-area').style.display = 'block';
+    
+    currentIndex = 0;
+    correctCount = 0;
+    isReviewMode = false;
+    displayQuestion();
 }
 
 function displayQuestion() {
@@ -419,17 +473,76 @@ function checkAnswer() {
     document.getElementById('next-btn').style.display = 'inline-block';
 }
 
+function getRankData(accuracy) {
+    const ranks = {
+        S: {
+            rank: 'S', className: 'rank-s', emoji: '🏆', commentColor: '#ffd700',
+            comments: [
+                "Flawless! You're a genius!",
+                "Perfect score! Absolutely incredible!",
+                "100%! Nothing can stop you!"
+            ]
+        },
+        A: {
+            rank: 'A', className: 'rank-a', emoji: '💪', commentColor: '#00e5ff',
+            comments: [
+                "Awesome work! Keep it up!",
+                "So close to perfection! Amazing!",
+                "You're on fire! Great job!"
+            ]
+        },
+        B: {
+            rank: 'B', className: 'rank-b', emoji: '😊', commentColor: '#00e676',
+            comments: [
+                "Nice job! You're getting there!",
+                "Good effort! Almost there!",
+                "Well done! A little more practice!"
+            ]
+        },
+        C: {
+            rank: 'C', className: 'rank-c', emoji: '📚', commentColor: '#ffbb00',
+            comments: [
+                "Not bad! Keep studying!",
+                "You can do better! Don't give up!",
+                "Room to grow! Stay focused!"
+            ]
+        },
+        D: {
+            rank: 'D', className: 'rank-d', emoji: '🔥', commentColor: '#ff5577',
+            comments: [
+                "Review and try again! You got this!",
+                "Don't worry, practice makes perfect!",
+                "Every mistake is a lesson! Keep going!"
+            ]
+        },
+        E: {
+            rank: 'E', className: 'rank-e', emoji: '💡', commentColor: '#aaa',
+            comments: [
+                "This is where it all begins!",
+                "The journey of a thousand miles starts here!",
+                "Never give up! You'll get there!"
+            ]
+        }
+    };
+
+    if (accuracy === 100) return ranks.S;
+    if (accuracy >= 80) return ranks.A;
+    if (accuracy >= 60) return ranks.B;
+    if (accuracy >= 40) return ranks.C;
+    if (accuracy >= 20) return ranks.D;
+    return ranks.E;
+}
+
 function nextQuestion() {
     currentIndex++;
     if (currentIndex < currentQuestions.length) {
         displayQuestion();
     } else {
         const accuracy = Math.round((correctCount / currentQuestions.length) * 100) || 0;
-        let rank = 'C';
-        let rankClass = 'rank-c';
-        if (accuracy === 100) { rank = 'S'; rankClass = 'rank-s'; }
-        else if (accuracy >= 80) { rank = 'A'; rankClass = 'rank-a'; }
-        else if (accuracy >= 60) { rank = 'B'; rankClass = 'rank-b'; }
+
+        // ランク判定（S～E）
+        const rankData = getRankData(accuracy);
+        const comment = rankData.comments[Math.floor(Math.random() * rankData.comments.length)];
 
         const resultHtml = `
             <h3 style="text-align: center; font-size: 24px;">全ての問題が終了しました！</h3>
@@ -438,10 +551,12 @@ function nextQuestion() {
                 <div style="font-size: 36px; font-weight: bold; color: #00e5ff; margin-bottom: 20px;">${accuracy}% <span style="font-size: 20px; color: #fff;">(${correctCount}/${currentQuestions.length}問)</span></div>
                 
                 <div style="font-size: 24px; color: #ddd; margin-bottom: 10px;">ランク</div>
-                <div class="${rankClass}" style="font-size: 120px; font-weight: bold; line-height: 1; margin: 0 auto; display: inline-block; padding: 10px 40px; border: 4px solid currentColor; border-radius: 20px; text-shadow: none; box-shadow: 6px 6px 0px currentColor;">${rank}</div>
+                <div class="rank-badge ${rankData.className}">${rankData.rank}</div>
+                <div class="rank-comment" style="color: ${rankData.commentColor};">${rankData.emoji} ${comment}</div>
+                <div style="margin-top: 20px; font-size: 16px; color: #aaa;">お疲れさまでした！🎉</div>
             </div>
             <div style="text-align: center; margin-top: 40px;">
-                <button onclick='location.reload()' class='secondary-btn' style='font-size: 20px; padding: 15px 40px; box-shadow: 6px 6px 0px #ffeb3b;'>最初に戻る</button>
+                <button onclick='resetToSetup()' class='secondary-btn' style='font-size: 20px; padding: 15px 40px; box-shadow: 6px 6px 0px #ffeb3b;'>最初に戻る</button>
             </div>
         `;
         document.getElementById('app-area').innerHTML = resultHtml;

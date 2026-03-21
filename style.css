@@ -221,24 +221,75 @@ select:focus, input:focus {
     border-color: #00e5ff;
 }
 
+/* ---- ランクバッジ共通 ---- */
+.rank-badge {
+    font-size: 120px;
+    font-weight: bold;
+    line-height: 1;
+    margin: 0 auto;
+    display: inline-block;
+    padding: 10px 40px;
+    border: 4px solid currentColor;
+    border-radius: 20px;
+    text-shadow: none;
+    box-shadow: 6px 6px 0px currentColor;
+}
+
+.rank-comment {
+    margin-top: 20px;
+    font-size: 20px;
+    font-weight: bold;
+    font-style: italic;
+    letter-spacing: 0.5px;
+}
+
+/* ---- 各ランク ---- */
 .rank-s {
-    color: #ffeb3b; /* Yellow */
-    text-shadow: 0 0 20px #ff0055, 6px 6px 0px #ff0055;
+    color: #ffd700;
+    text-shadow: 0 0 30px rgba(255, 215, 0, 0.8), 0 0 60px rgba(255, 215, 0, 0.4);
+    border-color: #ffd700;
+    box-shadow: 6px 6px 0px #b8860b, 0 0 40px rgba(255, 215, 0, 0.3);
+    animation: goldShimmer 2s ease-in-out infinite;
+}
+
+@keyframes goldShimmer {
+    0%, 100% { text-shadow: 0 0 30px rgba(255, 215, 0, 0.8), 0 0 60px rgba(255, 215, 0, 0.4); }
+    50% { text-shadow: 0 0 50px rgba(255, 215, 0, 1), 0 0 80px rgba(255, 215, 0, 0.6), 0 0 120px rgba(255, 215, 0, 0.3); }
 }
 
 .rank-a {
-    color: #00e5ff; /* Cyan */
-    text-shadow: 0 0 20px #00e5ff, 6px 6px 0px #111;
+    color: #00e5ff;
+    text-shadow: 0 0 20px rgba(0, 229, 255, 0.6);
+    border-color: #00e5ff;
+    box-shadow: 6px 6px 0px #0088aa;
 }
 
 .rank-b {
-    color: #fff;
-    text-shadow: 0 0 20px #fff, 6px 6px 0px #00e5ff;
+    color: #00e676;
+    text-shadow: 0 0 15px rgba(0, 230, 118, 0.5);
+    border-color: #00e676;
+    box-shadow: 6px 6px 0px #00994d;
 }
 
 .rank-c {
-    color: #ff0055; /* Hot Pink */
-    text-shadow: 0 0 20px #ff0055, 6px 6px 0px #111;
+    color: #ffbb00;
+    text-shadow: 0 0 15px rgba(255, 187, 0, 0.4);
+    border-color: #ffbb00;
+    box-shadow: 6px 6px 0px #cc9500;
+}
+
+.rank-d {
+    color: #ff5577;
+    text-shadow: 0 0 10px rgba(255, 85, 119, 0.3);
+    border-color: #ff5577;
+    box-shadow: 6px 6px 0px #aa2244;
+}
+
+.rank-e {
+    color: #888;
+    text-shadow: none;
+    border-color: #666;
+    box-shadow: 6px 6px 0px #333;
 }
 
 @media (max-width: 480px) {
