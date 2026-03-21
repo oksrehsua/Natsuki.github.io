@@ -179,6 +179,12 @@ function displayQuestion() {
         input.autocomplete = 'off';
         inputArea.appendChild(input);
     }
+
+    // 入力欄があれば自動でフォーカスを当てる
+    setTimeout(() => {
+        const firstInput = document.querySelector('input[type="text"]');
+        if (firstInput) firstInput.focus();
+    }, 10);
 }
 
 // 記号類をすべて無視し、全角半角の違いも吸収する強力なサニタイズ
@@ -254,3 +260,23 @@ function nextQuestion() {
         document.getElementById('app-area').innerHTML = "<h3>全ての問題が終了しました！お疲れ様でした。</h3><button onclick='location.reload()' class='secondary-btn' style='margin-top: 20px;'>ファイル選択に戻る</button>";
     }
 }
+
+// Enterキーで「解答する」および「次の問題へ」を実行するショートカット
+document.addEventListener('keydown', function(event) {
+    if (event.key === 'Enter') {
+        // ボタンにフォーカスがある場合は、ブラウザ標準のクリック動作と重複させない
+        if (document.activeElement.tagName === 'BUTTON') return;
+
+        const appArea = document.getElementById('app-area');
+        if (appArea && appArea.style.display !== 'none') {
+            const checkBtn = document.getElementById('check-btn');
+            const nextBtn = document.getElementById('next-btn');
+
+            if (checkBtn && checkBtn.style.display !== 'none') {
+                checkAnswer();
+            } else if (nextBtn && nextBtn.style.display !== 'none') {
+                nextQuestion();
+            }
+        }
+    }
+});
