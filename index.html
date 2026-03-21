@@ -33,10 +33,18 @@
             <option value="穴埋め">穴埋め</option>
         </select>
 
+        <p style="margin-top: 15px;">4. 出題数を入力してください（空欄ですべて出題）:</p>
+        <input type="number" id="count-input" value="10" min="1" placeholder="例: 10" style="max-width: 150px;">
+
         <div style="margin-top: 20px;">
             <button id="start-btn" onclick="startQuiz()">出題開始</button>
         </div>
-        <div id="setup-error" class="error-msg"></div>
+        <div id="setup-error" class="error-msg" style="display: none;"></div>
+
+        <div id="review-area" style="margin-top: 30px; display: none; padding-top: 20px; border-top: 2px dashed #555;">
+            <p style="color: #ffeb3b; font-weight: bold; margin-bottom: 10px;">復習モード（前回間違えた問題）</p>
+            <button id="review-btn" onclick="startReviewMode()" class="secondary-btn" style="background-color: #ff0055; color: #fff; box-shadow: 4px 4px 0px #ffeb3b;">間違えた問題に再挑戦する</button>
+        </div>
     </div>
 
     <div id="app-area" class="container" style="display: none;">

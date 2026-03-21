@@ -5,16 +5,16 @@
 body {
     font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif;
     padding: 10px 15px;
-    max-width: 800px; /* 余白を減らし、幅を広げて広々使えるように */
+    max-width: 800px;
     margin: 0 auto;
-    background-color: #ffdce0; /* レトロポップな薄いピンク */
-    color: #111;
+    background-color: #1a1a1a; /* 黒基調 */
+    color: #fff;
 }
 
 h1 {
     text-align: center;
-    color: #111;
-    text-shadow: 2px 2px 0px #fff;
+    color: #fff;
+    text-shadow: 3px 3px 0px #ff0055;
     font-size: 26px;
     letter-spacing: 1px;
     margin-bottom: 15px;
@@ -22,20 +22,20 @@ h1 {
 
 .container {
     padding: 15px;
-    background-color: #fff;
-    border: 3px solid #111;
+    background-color: #222;
+    border: 3px solid #fff;
     border-radius: 12px;
-    box-shadow: 6px 6px 0px #111;
+    box-shadow: 6px 6px 0px #00e5ff;
     margin-bottom: 15px;
 }
 
 .error-msg {
-    color: #ff0055;
+    color: #111;
     margin-top: 10px;
     font-weight: bold;
-    background-color: #ffe6e6;
+    background-color: #ff0055;
     padding: 5px 10px;
-    border: 2px dashed #ff0055;
+    border: 2px dashed #fff;
     border-radius: 5px;
     display: inline-block;
 }
@@ -48,8 +48,8 @@ h1 {
     font-weight: bold;
     margin-bottom: 10px;
     margin-right: 8px;
-    border: 2px solid #111;
-    box-shadow: 2px 2px 0px #111;
+    border: 2px solid #fff;
+    box-shadow: 2px 2px 0px #ffeb3b;
 }
 
 .format-badge {
@@ -65,10 +65,10 @@ h1 {
 .explanation {
     margin-top: 12px;
     padding: 10px 15px;
-    background-color: #f0f8ff;
-    border: 3px solid #111;
+    background-color: #333;
+    border: 3px solid #fff;
     border-radius: 8px;
-    box-shadow: 4px 4px 0px #111;
+    box-shadow: 4px 4px 0px #e6004c;
     display: none;
     line-height: 1.5;
 }
@@ -77,7 +77,7 @@ h1 {
     margin-top: 12px;
     font-weight: bold;
     font-size: 20px;
-    text-shadow: 1px 1px 0px #fff;
+    text-shadow: 1px 1px 0px #111;
 }
 
 .option-label {
@@ -85,15 +85,17 @@ h1 {
     margin: 10px 0;
     cursor: pointer;
     padding: 10px;
-    border: 2px solid #ddd;
+    border: 2px solid #555;
     border-radius: 8px;
     transition: all 0.2s;
     font-weight: bold;
+    background-color: #2a2a2a;
 }
 
 .option-label:hover {
-    background-color: #fffacd;
-    border-color: #111;
+    background-color: #00e5ff;
+    color: #111;
+    border-color: #00e5ff;
     transform: translateX(4px);
 }
 
@@ -101,10 +103,11 @@ h1 {
     display: inline-block;
     padding: 8px 15px;
     margin: 6px;
-    background-color: #fff;
-    border: 2px solid #111;
+    background-color: #333;
+    color: #fff;
+    border: 2px solid #fff;
     border-radius: 8px;
-    box-shadow: 3px 3px 0px #111;
+    box-shadow: 3px 3px 0px #00e5ff;
     cursor: pointer;
     user-select: none;
     font-weight: bold;
@@ -112,18 +115,20 @@ h1 {
 }
 
 .word-chip:hover {
-    background-color: #ffe600;
+    background-color: #ffeb3b;
+    color: #111;
+    border-color: #ffeb3b;
 }
 
 .word-chip:active {
     transform: translate(2px, 2px);
-    box-shadow: 1px 1px 0px #111;
+    box-shadow: 1px 1px 0px #00e5ff;
 }
 
 .answer-area {
     min-height: 48px;
-    border: 3px dashed #111;
-    background-color: #fafbfc;
+    border: 3px dashed #777;
+    background-color: #1a1a1a;
     border-radius: 8px;
     margin: 12px 0;
     padding: 8px;
@@ -137,9 +142,11 @@ h1 {
     padding: 12px;
     font-size: 16px;
     margin-top: 10px;
-    border: 3px solid #111;
+    border: 3px solid #777;
     border-radius: 8px;
-    box-shadow: inset 2px 2px 0px rgba(0,0,0,0.1);
+    background-color: #222;
+    color: #00e5ff;
+    box-shadow: inset 2px 2px 0px rgba(0,0,0,0.5);
     font-weight: bold;
 }
 
@@ -150,19 +157,20 @@ h1 {
     font-size: 16px;
     margin: 0 5px;
     text-align: center;
-    border: 2px solid #111;
+    border: 2px solid #777;
     border-radius: 6px;
-    background-color: #fff8e7;
+    background-color: #222;
+    color: #00e5ff;
     font-weight: bold;
 }
 
 button {
     padding: 10px 20px;
-    border: 3px solid #111;
+    border: 3px solid #fff;
     border-radius: 8px;
     background-color: #ff0055; /* ホットピンク */
     color: white;
-    box-shadow: 4px 4px 0px #111;
+    box-shadow: 4px 4px 0px #00e5ff;
     cursor: pointer;
     font-size: 16px;
     font-weight: bold;
@@ -176,7 +184,7 @@ button:hover {
 
 button:active {
     transform: translate(3px, 3px);
-    box-shadow: 1px 1px 0px #111;
+    box-shadow: 1px 1px 0px #00e5ff;
 }
 
 .secondary-btn {
@@ -184,10 +192,15 @@ button:active {
     color: #111;
     font-size: 15px;
     padding: 10px 20px;
+    box-shadow: 4px 4px 0px #ffeb3b;
 }
 
 .secondary-btn:hover {
     background-color: #00cce6;
+}
+
+.secondary-btn:active {
+    box-shadow: 1px 1px 0px #ffeb3b;
 }
 
 input[type="file"], select {
@@ -195,20 +208,41 @@ input[type="file"], select {
     font-size: 16px;
     padding: 8px;
     margin-top: 5px;
-    border: 2px solid #111;
+    border: 2px solid #555;
     border-radius: 6px;
-    background-color: #fff;
+    background-color: #222;
+    color: #fff;
     font-weight: bold;
 }
 
 select:focus, input:focus {
     outline: none;
-    border-color: #ff0055;
+    border-color: #00e5ff;
+}
+
+.rank-s {
+    color: #ffeb3b; /* Yellow */
+    text-shadow: 0 0 20px #ff0055, 6px 6px 0px #ff0055;
+}
+
+.rank-a {
+    color: #00e5ff; /* Cyan */
+    text-shadow: 0 0 20px #00e5ff, 6px 6px 0px #111;
+}
+
+.rank-b {
+    color: #fff;
+    text-shadow: 0 0 20px #fff, 6px 6px 0px #00e5ff;
+}
+
+.rank-c {
+    color: #ff0055; /* Hot Pink */
+    text-shadow: 0 0 20px #ff0055, 6px 6px 0px #111;
 }
 
 @media (max-width: 480px) {
     body { padding: 10px; }
-    .container { padding: 15px; border-width: 2px; box-shadow: 4px 4px 0px #111; }
+    .container { padding: 15px; border-width: 2px; box-shadow: 4px 4px 0px #00e5ff; }
     h1 { font-size: 26px; }
     button { width: 100%; }
     .secondary-btn { width: 100%; margin-top: 15px; }

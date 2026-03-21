@@ -1,6 +1,34 @@
 let allQuestions = [];
 let currentQuestions = [];
 let currentIndex = 0;
+let correctCount = 0;
+let mistakes = [];
+let isReviewMode = false;
+
+window.addEventListener('DOMContentLoaded', () => {
+    const savedMistakes = localStorage.getItem('english_quiz_mistakes');
+    if (savedMistakes) {
+        mistakes = JSON.parse(savedMistakes);
+        if (mistakes.length > 0) {
+            document.getElementById('review-area').style.display = 'block';
+            document.getElementById('review-btn').textContent = `間違えた問題に再挑戦する (${mistakes.length}問)`;
+        }
+    }
+});
+
+function startReviewMode() {
+    if (mistakes.length === 0) return;
+    isReviewMode = true;
+    currentQuestions = [...mistakes];
+    shuffleArray(currentQuestions);
+    
+    document.getElementById('setup-area').style.display = 'none';
+    document.getElementById('app-area').style.display = 'block';
+    
+    currentIndex = 0;
+    correctCount = 0;
+    displayQuestion();
+}
 
 // CSVのパース処理（ダブルクォーテーション内のカンマ対応）
 function parseCSV(text) {
@@ -52,6 +80,7 @@ function startQuiz() {
 
     if (!fileInput.files.length) {
         errorMsg.textContent = "CSVファイルを選択してください。";
+        errorMsg.style.display = 'inline-block';
         return;
     }
 
@@ -88,21 +117,34 @@ function startQuiz() {
 
         if (currentQuestions.length === 0) {
             errorMsg.textContent = "該当するレベルの問題がありません。";
+            errorMsg.style.display = 'inline-block';
             return;
         }
 
         // ランダムに並べ替え
         shuffleArray(currentQuestions);
 
+        // 出題数を絞る
+        const countInputVal = document.getElementById('count-input').value;
+        if (countInputVal.trim() !== "") {
+            const count = parseInt(countInputVal, 10);
+            if (!isNaN(count) && count > 0) {
+                currentQuestions = currentQuestions.slice(0, count);
+            }
+        }
+
         document.getElementById('setup-area').style.display = 'none';
         document.getElementById('app-area').style.display = 'block';
         
         currentIndex = 0;
+        correctCount = 0;
+        isReviewMode = false;
         displayQuestion();
     };
 
     reader.onerror = function() {
         errorMsg.textContent = "ファイルの読み込みに失敗しました。";
+        errorMsg.style.display = 'inline-block';
     };
 
     reader.readAsText(file);
@@ -237,11 +279,22 @@ function checkAnswer() {
     const resultMsg = document.getElementById('result-message');
     
     if (isCorrect) {
+        correctCount++;
         resultMsg.textContent = "⭕ 正解！";
-        resultMsg.style.color = "#28a745";
+        resultMsg.style.color = "#00e5ff"; // ネオンシアン
+        
+        // 正解した場合はミスリストから除外して保存
+        mistakes = mistakes.filter(m => m.id !== q.id);
+        localStorage.setItem('english_quiz_mistakes', JSON.stringify(mistakes));
     } else {
         resultMsg.textContent = `❌ 不正解... (正解: ${q.answer})`;
-        resultMsg.style.color = "#dc3545";
+        resultMsg.style.color = "#ff0055"; // ホットピンク
+        
+        // 不正解の場合はミスリストに追加（重複しないように）
+        if (!mistakes.some(m => m.id === q.id)) {
+            mistakes.push(q);
+            localStorage.setItem('english_quiz_mistakes', JSON.stringify(mistakes));
+        }
     }
 
     const expArea = document.getElementById('explanation-area');
@@ -257,7 +310,27 @@ function nextQuestion() {
     if (currentIndex < currentQuestions.length) {
         displayQuestion();
     } else {
-        document.getElementById('app-area').innerHTML = "<h3>全ての問題が終了しました！お疲れ様でした。</h3><button onclick='location.reload()' class='secondary-btn' style='margin-top: 20px;'>ファイル選択に戻る</button>";
+        const accuracy = Math.round((correctCount / currentQuestions.length) * 100) || 0;
+        let rank = 'C';
+        let rankClass = 'rank-c';
+        if (accuracy === 100) { rank = 'S'; rankClass = 'rank-s'; }
+        else if (accuracy >= 80) { rank = 'A'; rankClass = 'rank-a'; }
+        else if (accuracy >= 60) { rank = 'B'; rankClass = 'rank-b'; }
+
+        const resultHtml = `
+            <h3 style="text-align: center; font-size: 24px;">全ての問題が終了しました！</h3>
+            <div style="text-align: center; margin: 30px 0;">
+                <div style="font-size: 18px; color: #ddd;">あなたの正答率</div>
+                <div style="font-size: 36px; font-weight: bold; color: #00e5ff; margin-bottom: 20px;">${accuracy}% <span style="font-size: 20px; color: #fff;">(${correctCount}/${currentQuestions.length}問)</span></div>
+                
+                <div style="font-size: 24px; color: #ddd; margin-bottom: 10px;">ランク</div>
+                <div class="${rankClass}" style="font-size: 120px; font-weight: bold; line-height: 1; margin: 0 auto; display: inline-block; padding: 10px 40px; border: 4px solid currentColor; border-radius: 20px; text-shadow: none; box-shadow: 6px 6px 0px currentColor;">${rank}</div>
+            </div>
+            <div style="text-align: center; margin-top: 40px;">
+                <button onclick='location.reload()' class='secondary-btn' style='font-size: 20px; padding: 15px 40px; box-shadow: 6px 6px 0px #ffeb3b;'>最初に戻る</button>
+            </div>
+        `;
+        document.getElementById('app-area').innerHTML = resultHtml;
     }
 }
 
