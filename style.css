@@ -313,4 +313,17 @@ select:focus, input:focus {
 
 .play-audio-btn:hover {
     background-color: #00e676;
+}
+
+.play-audio-btn-slow {
+    background-color: #00d2ff;
+    box-shadow: 4px 4px 0px #0088cc;
+}
+
+.play-audio-btn-slow:active {
+    box-shadow: 1px 1px 0px #0088cc;
+}
+
+.play-audio-btn-slow:hover {
+    background-color: #33ddff;
 }

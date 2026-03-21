@@ -369,9 +369,14 @@ function checkAnswer() {
     // シングルクォートなどがJS文字列内でエラーにならないようにエスケープ
     const escapedText = englishText.replace(/'/g, "\\'");
     
-    const playBtnHtml = `<button onclick="playAudio('${escapedText}')" class="play-audio-btn">🔊 英文を読み上げる</button>`;
+    const playBtnsHtml = `
+        <div style="display: flex; gap: 10px; margin-top: 5px; flex-wrap: wrap;">
+            <button onclick="playAudio('${escapedText}', 1.0)" class="play-audio-btn">🔊 普通 (1.0x)</button>
+            <button onclick="playAudio('${escapedText}', 0.5)" class="play-audio-btn play-audio-btn-slow">🐢 ゆっくり (0.5x)</button>
+        </div>
+    `;
 
-    expArea.innerHTML = `<strong style="font-size: 1.1em; color: #ffeb3b;">解説:</strong><br><div style="margin-top: 5px;">${q.exp}</div>${playBtnHtml}`;
+    expArea.innerHTML = `<strong style="font-size: 1.1em; color: #ffeb3b;">解説:</strong><br><div style="margin-top: 5px; margin-bottom: 5px;">${q.exp}</div>${playBtnsHtml}`;
     expArea.style.display = 'block';
 
     document.getElementById('check-btn').style.display = 'none';
@@ -428,7 +433,7 @@ document.addEventListener('keydown', function(event) {
 });
 
 // --- 音声読み上げ機能 (Web Speech API) ---
-function playAudio(text) {
+function playAudio(text, rate = 1.0) {
     if (!('speechSynthesis' in window)) {
         alert("お使いのブラウザは音声読み上げに対応していません。");
         return;
@@ -439,6 +444,7 @@ function playAudio(text) {
     
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.lang = 'en-US';
+    utterance.rate = rate;
     
     // 可能であればネイティブに近くて自然なオンライン音声を探す
     const voices = window.speechSynthesis.getVoices();
