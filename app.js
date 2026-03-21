@@ -26,15 +26,59 @@ window.addEventListener('DOMContentLoaded', () => {
                 const text = evt.target.result;
                 const rows = parseCSV(text);
                 const tagsSet = new Set();
+                const levelSet = new Set();
+                const formatSet = new Set();
+
                 for (let i = 1; i < rows.length; i++) {
                     const r = rows[i];
                     if (r.length < 7) continue;
+
+                    // レベルの収集
+                    const level = r[2] ? r[2].trim() : "";
+                    if (level) levelSet.add(level);
+
+                    // 形式の収集
+                    const format = r[3] ? r[3].trim() : "";
+                    if (format) formatSet.add(format);
+
+                    // タグの収集
                     const tagStr = r[8] || "";
                     if (tagStr) {
                         const tags = tagStr.split(',').map(t => t.trim()).filter(t => t);
                         tags.forEach(t => tagsSet.add(t));
                     }
                 }
+
+                // レベルのプルダウン更新
+                const levelSelect = document.getElementById('level-select');
+                if (levelSelect) {
+                    levelSelect.innerHTML = '<option value="all">すべてのレベル</option>';
+                    const sortedLevels = Array.from(levelSet).sort((a,b) => {
+                        const numA = Number(a); const numB = Number(b);
+                        return (!isNaN(numA) && !isNaN(numB)) ? numA - numB : a.localeCompare(b);
+                    });
+                    sortedLevels.forEach(lvl => {
+                        const option = document.createElement('option');
+                        option.value = lvl;
+                        option.textContent = !isNaN(Number(lvl)) ? `レベル ${lvl}` : lvl;
+                        levelSelect.appendChild(option);
+                    });
+                }
+
+                // 形式のプルダウン更新
+                const formatSelect = document.getElementById('format-select');
+                if (formatSelect) {
+                    formatSelect.innerHTML = '<option value="all">すべての形式</option>';
+                    const sortedFormats = Array.from(formatSet).sort();
+                    sortedFormats.forEach(fmt => {
+                        const option = document.createElement('option');
+                        option.value = fmt;
+                        option.textContent = fmt;
+                        formatSelect.appendChild(option);
+                    });
+                }
+
+                // タグのプルダウン更新
                 const tagSelect = document.getElementById('tag-select');
                 if (tagSelect) {
                     tagSelect.innerHTML = '<option value="">すべてのタグ</option>';
@@ -329,13 +373,18 @@ function checkAnswer() {
     }
 
     // --- 表示・音声用の正解テキスト作成 ---
+    // ( A / B ) のような選択形式のカッコも正解で置換できるように正規表現を強化
+    // 日本語を含まない「スラッシュ入りのカッコ」を対象にする
+    const choiceRegex = /\([^)ぁ-んァ-ン一-龥]*?\/[^)ぁ-んァ-ン一-龥]*?\)/g;
+
     // 音声読み上げ用（タグなし純粋なテキスト）
-    let englishText = q.text.replace(/\(\s*\)/g, q.answer).replace(/\[\s*.*?\s*\]/g, q.answer);
+    let englishText = q.text.replace(choiceRegex, q.answer).replace(/\(\s*\)/g, q.answer).replace(/\[\s*.*?\s*\]/g, q.answer);
     englishText = englishText.replace(/\([^)]*[ぁ-んァ-ン一-龥]+[^)]*\)/g, '').trim();
     if (!englishText || englishText.length < 2) englishText = q.answer;
 
     // 画面表示用（正解部分を赤字にしたHTML）
-    let answerSentenceHtml = q.text.replace(/\(\s*\)/g, `<span class="highlight-answer">${q.answer}</span>`);
+    let answerSentenceHtml = q.text.replace(choiceRegex, `<span class="highlight-answer">${q.answer}</span>`);
+    answerSentenceHtml = answerSentenceHtml.replace(/\(\s*\)/g, `<span class="highlight-answer">${q.answer}</span>`);
     answerSentenceHtml = answerSentenceHtml.replace(/\[\s*.*?\s*\]/g, `<span class="highlight-answer">${q.answer}</span>`);
     answerSentenceHtml = answerSentenceHtml.replace(/\([^)]*[ぁ-んァ-ン一-龥]+[^)]*\)/g, '').trim();
     if (!answerSentenceHtml || answerSentenceHtml.length < 2) {
