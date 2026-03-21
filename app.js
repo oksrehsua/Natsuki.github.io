@@ -30,6 +30,14 @@ function startReviewMode() {
     displayQuestion();
 }
 
+function resetMistakes() {
+    if (confirm("間違えた問題の記録をすべて削除しますか？")) {
+        mistakes = [];
+        localStorage.removeItem('english_quiz_mistakes');
+        document.getElementById('review-area').style.display = 'none';
+    }
+}
+
 // CSVのパース処理（ダブルクォーテーション内のカンマ対応）
 function parseCSV(text) {
     const rows = [];
