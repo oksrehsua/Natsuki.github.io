@@ -372,7 +372,8 @@ function checkAnswer() {
     const playBtnsHtml = `
         <div style="display: flex; gap: 10px; margin-top: 5px; flex-wrap: wrap;">
             <button onclick="playAudio('${escapedText}', 1.0)" class="play-audio-btn">🔊 普通 (1.0x)</button>
-            <button onclick="playAudio('${escapedText}', 0.5)" class="play-audio-btn play-audio-btn-slow">🐢 ゆっくり (0.5x)</button>
+            <button onclick="playAudio('${escapedText}', 0.75)" class="play-audio-btn play-audio-btn-mid">🐢 ちょっとゆっくり (0.75x)</button>
+            <button onclick="playAudio('${escapedText}', 0.5)" class="play-audio-btn play-audio-btn-slow">🐢 すごくゆっくり (0.5x)</button>
         </div>
     `;
 

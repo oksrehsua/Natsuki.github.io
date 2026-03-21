@@ -326,4 +326,17 @@ select:focus, input:focus {
 
 .play-audio-btn-slow:hover {
     background-color: #33ddff;
+}
+
+.play-audio-btn-mid {
+    background-color: #ffbb00; /* オレンジ系イエロー */
+    box-shadow: 4px 4px 0px #cc9900;
+}
+
+.play-audio-btn-mid:active {
+    box-shadow: 1px 1px 0px #cc9900;
+}
+
+.play-audio-btn-mid:hover {
+    background-color: #ffcc33;
 }
