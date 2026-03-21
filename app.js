@@ -48,6 +48,7 @@ function startQuiz() {
     const fileInput = document.getElementById('csv-file');
     const errorMsg = document.getElementById('setup-error');
     const selectedLevel = document.getElementById('level-select').value;
+    const selectedFormat = document.getElementById('format-select').value;
 
     if (!fileInput.files.length) {
         errorMsg.textContent = "CSVファイルを選択してください。";
@@ -78,8 +79,12 @@ function startQuiz() {
             });
         }
 
-        // レベルで絞り込み
-        currentQuestions = allQuestions.filter(q => selectedLevel === "all" || q.level === selectedLevel);
+        // レベルと形式で絞り込み
+        currentQuestions = allQuestions.filter(q => {
+            const levelMatch = selectedLevel === "all" || q.level === selectedLevel;
+            const formatMatch = selectedFormat === "all" || q.format === selectedFormat;
+            return levelMatch && formatMatch;
+        });
 
         if (currentQuestions.length === 0) {
             errorMsg.textContent = "該当するレベルの問題がありません。";
@@ -196,11 +201,9 @@ function checkAnswer() {
 
     if (q.format === "選択問題") {
         const selected = document.querySelector('input[name="answer"]:checked');
-        if (!selected) { alert("選択肢を選んでください。"); return; }
-        userAnswer = selected.value;
+        userAnswer = selected ? selected.value : "";
     } else if (q.format === "並べ替え") {
         const chips = document.getElementById('sort-answer-area').children;
-        if (chips.length === 0) { alert("単語をタップして並べてください。"); return; }
         userAnswer = Array.from(chips).map(c => c.textContent).join(' ');
     } else if (q.format === "穴埋め") {
         // 複数の穴埋め枠があるバグを修正（すべての枠の文字を結合して比較）
@@ -209,12 +212,10 @@ function checkAnswer() {
         inputs.forEach(input => {
             if (input.value.trim() !== "") answers.push(input.value.trim());
         });
-        if (answers.length === 0) { alert("解答を入力してください。"); return; }
         userAnswer = answers.join(' ');
     } else {
         const inputEl = document.getElementById('text-answer');
-        if (!inputEl || inputEl.value.trim() === "") { alert("解答を入力してください。"); return; }
-        userAnswer = inputEl.value;
+        userAnswer = inputEl ? inputEl.value : "";
     }
 
     const cleanUser = sanitize(userAnswer);
