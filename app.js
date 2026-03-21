@@ -85,6 +85,8 @@ function startQuiz() {
     const errorMsg = document.getElementById('setup-error');
     const selectedLevel = document.getElementById('level-select').value;
     const selectedFormat = document.getElementById('format-select').value;
+    const tagInputVal = document.getElementById('tag-input').value.trim().toLowerCase();
+    const filterTags = tagInputVal ? tagInputVal.split(',').map(t => t.trim()).filter(t => t) : [];
 
     if (!fileInput.files.length) {
         errorMsg.textContent = "CSVファイルを選択してください。";
@@ -112,7 +114,8 @@ function startQuiz() {
                 format: r[3],
                 text: r[4],
                 answer: r[5],
-                exp: r[6]
+                exp: r[6],
+                tags: r[8] || ""
             });
         }
 
@@ -120,7 +123,12 @@ function startQuiz() {
         currentQuestions = allQuestions.filter(q => {
             const levelMatch = selectedLevel === "all" || q.level === selectedLevel;
             const formatMatch = selectedFormat === "all" || q.format === selectedFormat;
-            return levelMatch && formatMatch;
+            let tagMatch = true;
+            if (filterTags.length > 0) {
+                const lowerQTags = q.tags.toLowerCase();
+                tagMatch = filterTags.every(t => lowerQTags.includes(t));
+            }
+            return levelMatch && formatMatch && tagMatch;
         });
 
         if (currentQuestions.length === 0) {
