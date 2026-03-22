@@ -390,4 +390,45 @@ select:focus, input:focus {
 
 .play-audio-btn-mid:hover {
     background-color: #ffcc33;
-}
+}
+
+/* ---- 自己採点ボタン ---- */
+.self-grade-area {
+    margin-top: 15px;
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.self-grade-btn {
+    flex: 1;
+    min-width: 140px;
+    max-width: 250px;
+    padding: 12px;
+    font-size: 18px;
+    border: 3px solid #fff;
+    border-radius: 10px;
+    cursor: pointer;
+    font-weight: 900;
+    box-shadow: 4px 4px 0px #111;
+    transition: transform 0.1s, box-shadow 0.1s;
+    text-align: center;
+}
+
+.self-grade-correct {
+    background-color: #00d26a; /* グリーン */
+    color: #fff;
+    box-shadow: 4px 4px 0px #007a3d;
+}
+
+.self-grade-incorrect {
+    background-color: #ff0055; /* ピンク */
+    color: #fff;
+    box-shadow: 4px 4px 0px #a10036;
+}
+
+.self-grade-btn:active {
+    transform: translate(3px, 3px);
+    box-shadow: 1px 1px 0px #111;
+}

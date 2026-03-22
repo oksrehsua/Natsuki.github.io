@@ -371,7 +371,6 @@ function checkAnswer() {
         const selected = document.querySelector('input[name="answer"]:checked');
         userAnswer = selected ? selected.value : "";
     } else if (q.format === "穴埋め" || q.format === "英単語") {
-        // 複数の穴埋め枠があるバグを修正（すべての枠の文字を結合して比較）
         const inputs = document.querySelectorAll('.text-answer');
         let answers = [];
         inputs.forEach(input => {
@@ -383,30 +382,29 @@ function checkAnswer() {
         userAnswer = inputEl ? inputEl.value : "";
     }
 
+    // --- 正解判定とテキスト作成 ---
     const cleanUser = sanitize(userAnswer);
     const cleanCorrect = sanitize(q.answer);
     
-    // 穴埋め問題で「文全体」を入力してしまった場合も正解扱いにする救済処理
-    let isCorrect = (cleanUser === cleanCorrect);
-    if (!isCorrect && (q.format === "穴埋め" || q.format === "英単語") && cleanUser.includes(cleanCorrect) && cleanUser.length > cleanCorrect.length) {
-        // ユーザーの入力内容の中に、正解の単語が含まれていればOKとする
-        isCorrect = true; 
+    // 自由英作文（自己採点）の場合は、ここでは正解判定を行わない
+    const isFreeFormat = (q.format === "自由英作文");
+    let isCorrect = false;
+
+    if (!isFreeFormat) {
+        isCorrect = (cleanUser === cleanCorrect);
+        // 穴埋め問題の救済処理
+        if (!isCorrect && (q.format === "穴埋め" || q.format === "英単語") && cleanUser.includes(cleanCorrect) && cleanUser.length > cleanCorrect.length) {
+            isCorrect = true; 
+        }
     }
 
     // --- 表示・音声用の正解テキスト作成 ---
-    // ( A / B ) のような選択形式のカッコも正解で置換できるように正規表現を強化
-    // 日本語を含まない「スラッシュ入りのカッコ」を対象にする
     const choiceRegex = /\([^)ぁ-んァ-ン一-龥]*?\/[^)ぁ-んァ-ン一-龥]*?\)/g;
-
-    // 複数の穴埋め枠がある場合、正解を単語ごとに分割して各枠に割り当てる
     const blankCount = (q.text.match(/\(\s*\)/g) || []).length;
     const answerWords = q.answer.split(/\s+/);
 
-    // 穴埋め枠を1つずつ置換するヘルパー関数
     function replaceBlanksByWord(text, replaceFn) {
-        if (blankCount <= 1) {
-            return text.replace(/\(\s*\)/g, replaceFn(q.answer));
-        }
+        if (blankCount <= 1) return text.replace(/\(\s*\)/g, replaceFn(q.answer));
         let wordIdx = 0;
         return text.replace(/\(\s*\)/g, () => {
             const word = wordIdx < answerWords.length ? answerWords[wordIdx] : '';
@@ -415,49 +413,66 @@ function checkAnswer() {
         });
     }
 
-    // 音声読み上げ用（タグなし純粋なテキスト）
-    let englishText = q.text.replace(choiceRegex, q.answer);
-    englishText = replaceBlanksByWord(englishText, w => w);
-    englishText = englishText.replace(/\[\s*.*?\s*\]/g, q.answer);
-    englishText = englishText.replace(/\([^)]*[ぁ-んァ-ン一-龥]+[^)]*\)/g, '').trim();
-    if (!englishText || englishText.length < 2) englishText = q.answer;
+    let englishText = "";
+    let answerSentenceHtml = "";
 
-    // 画面表示用（正解部分を赤字にしたHTML）
-    let answerSentenceHtml = q.text.replace(choiceRegex, `<span class="highlight-answer">${q.answer}</span>`);
-    answerSentenceHtml = replaceBlanksByWord(answerSentenceHtml, w => `<span class="highlight-answer">${w}</span>`);
-    answerSentenceHtml = answerSentenceHtml.replace(/\[\s*.*?\s*\]/g, `<span class="highlight-answer">${q.answer}</span>`);
-    answerSentenceHtml = answerSentenceHtml.replace(/\([^)]*[ぁ-んァ-ン一-龥]+[^)]*\)/g, '').trim();
-    if (!answerSentenceHtml || answerSentenceHtml.length < 2) {
+    if (isFreeFormat) {
+        // 自由英作文はCSVの正解をそのまま使う
+        englishText = q.answer;
         answerSentenceHtml = `<span class="highlight-answer">${q.answer}</span>`;
-    }
-
-    const resultMsg = document.getElementById('result-message');
-    
-    if (isCorrect) {
-        correctCount++;
-        resultMsg.innerHTML = `<div class="result-correct">⭕ 正解！</div>`;
-        
-        // 正解した場合はミスリストから除外して保存
-        mistakes = mistakes.filter(m => m.id !== q.id);
-        localStorage.setItem('english_quiz_mistakes', JSON.stringify(mistakes));
     } else {
-        resultMsg.innerHTML = `
-            <div class="result-incorrect">❌ 不正解</div>
-            <div class="result-sentence">正解: ${answerSentenceHtml}</div>
-        `;
-        
-        // 不正解の場合はミスリストに追加（重複しないように）
-        if (!mistakes.some(m => m.id === q.id)) {
-            mistakes.push(q);
-            localStorage.setItem('english_quiz_mistakes', JSON.stringify(mistakes));
+        // 音声読み上げ用
+        englishText = q.text.replace(choiceRegex, q.answer);
+        englishText = replaceBlanksByWord(englishText, w => w);
+        englishText = englishText.replace(/\[\s*.*?\s*\]/g, q.answer);
+        englishText = englishText.replace(/\([^)]*[ぁ-んァ-ン一-龥]+[^)]*\)/g, '').trim();
+        if (!englishText || englishText.length < 2) englishText = q.answer;
+
+        // 画面表示用
+        answerSentenceHtml = q.text.replace(choiceRegex, `<span class="highlight-answer">${q.answer}</span>`);
+        answerSentenceHtml = replaceBlanksByWord(answerSentenceHtml, w => `<span class="highlight-answer">${w}</span>`);
+        answerSentenceHtml = answerSentenceHtml.replace(/\[\s*.*?\s*\]/g, `<span class="highlight-answer">${q.answer}</span>`);
+        answerSentenceHtml = answerSentenceHtml.replace(/\([^)]*[ぁ-んァ-ン一-龥]+[^)]*\)/g, '').trim();
+        if (!answerSentenceHtml || answerSentenceHtml.length < 2) {
+            answerSentenceHtml = `<span class="highlight-answer">${q.answer}</span>`;
         }
     }
 
+    const resultMsg = document.getElementById('result-message');
     const expArea = document.getElementById('explanation-area');
     
-    // シングルクォートなどがJS文字列内でエラーにならないようにエスケープ
+    if (isFreeFormat) {
+        resultMsg.innerHTML = `<div class="result-correct" style="color: #ffeb3b;">📝 お手本を確認して自己採点してください</div>`;
+        // 自己採点ボタンを追加
+        const selfGradeHtml = `
+            <div id="self-grade-container">
+                <div class="result-sentence" style="margin-bottom: 10px;">お手本: ${answerSentenceHtml}</div>
+                <div class="self-grade-area">
+                    <div class="self-grade-btn self-grade-correct" onclick="submitSelfGrade(true)">⭕ 正解にする</div>
+                    <div class="self-grade-btn self-grade-incorrect" onclick="submitSelfGrade(false)">❌ 不正解にする</div>
+                </div>
+            </div>
+        `;
+        resultMsg.innerHTML += selfGradeHtml;
+        document.getElementById('next-btn').style.display = 'none';
+    } else {
+        if (isCorrect) {
+            correctCount++;
+            resultMsg.innerHTML = `<div class="result-correct">⭕ 正解！</div>`;
+            mistakes = mistakes.filter(m => m.id !== q.id);
+        } else {
+            resultMsg.innerHTML = `
+                <div class="result-incorrect">❌ 不正解</div>
+                <div class="result-sentence">正解: ${answerSentenceHtml}</div>
+            `;
+            if (!mistakes.some(m => m.id === q.id)) mistakes.push(q);
+        }
+        localStorage.setItem('english_quiz_mistakes', JSON.stringify(mistakes));
+        document.getElementById('next-btn').style.display = 'inline-block';
+    }
+
+    // 解説と音声ボタン
     const escapedText = englishText.replace(/'/g, "\\'");
-    
     const playBtnsHtml = `
         <div style="display: flex; gap: 10px; margin-top: 5px; flex-wrap: wrap;">
             <button onclick="playAudio('${escapedText}', 1.0)" class="play-audio-btn">🔊 普通 (1.0x)</button>
@@ -468,8 +483,29 @@ function checkAnswer() {
 
     expArea.innerHTML = `<strong style="font-size: 1.1em; color: #ffeb3b;">解説:</strong><br><div style="margin-top: 5px; margin-bottom: 5px;">${q.exp}</div>${playBtnsHtml}`;
     expArea.style.display = 'block';
-
     document.getElementById('check-btn').style.display = 'none';
+}
+
+function submitSelfGrade(isCorrect) {
+    const q = currentQuestions[currentIndex];
+    const resultMsg = document.getElementById('result-message');
+    
+    if (isCorrect) {
+        correctCount++;
+        mistakes = mistakes.filter(m => m.id !== q.id);
+    } else {
+        if (!mistakes.some(m => m.id === q.id)) mistakes.push(q);
+    }
+    localStorage.setItem('english_quiz_mistakes', JSON.stringify(mistakes));
+
+    // ボタンを隠して結果を表示
+    const container = document.getElementById('self-grade-container');
+    if (container) container.style.display = 'none';
+    
+    resultMsg.innerHTML = isCorrect ? 
+        `<div class="result-correct">⭕ 自己採点：正解！</div>` : 
+        `<div class="result-incorrect">❌ 自己採点：不正解</div>`;
+    
     document.getElementById('next-btn').style.display = 'inline-block';
 }
 
