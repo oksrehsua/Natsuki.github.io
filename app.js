@@ -416,11 +416,16 @@ function checkAnswer() {
     let englishText = "";
     let answerSentenceHtml = "";
 
-    if (isSelfGradeFormat) {
-        // 和文英訳はCSVの正解をそのまま使う
+    // 正解表示を「書き換え・補完」ではなく「直接表示」にする形式の判定
+    const usePlainAnswerDisplay = isSelfGradeFormat || 
+                                 ["誤文訂正", "書き換え", "Q&A作成"].includes(q.format);
+
+    if (usePlainAnswerDisplay) {
+        // 指定された形式はCSVの正解をそのまま使う
         englishText = q.answer;
         answerSentenceHtml = `<span class="highlight-answer">${q.answer}</span>`;
     } else {
+        // 穴埋め、選択、英単語などは問題文の ( ) や [ ] を置換して「文」を再現する
         // 音声読み上げ用
         englishText = q.text.replace(choiceRegex, q.answer);
         englishText = replaceBlanksByWord(englishText, w => w);
