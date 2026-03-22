@@ -35,11 +35,11 @@ window.addEventListener('DOMContentLoaded', () => {
     // CSVファイル選択時にタグのプルダウンを更新する
     const csvFileInput = document.getElementById('csv-file');
     if (csvFileInput) {
-        csvFileInput.addEventListener('change', function(e) {
+        csvFileInput.addEventListener('change', function (e) {
             const file = e.target.files[0];
             if (!file) return;
             const reader = new FileReader();
-            reader.onload = function(evt) {
+            reader.onload = function (evt) {
                 const text = evt.target.result;
                 const rows = parseCSV(text);
                 const tagsSet = new Set();
@@ -70,7 +70,7 @@ window.addEventListener('DOMContentLoaded', () => {
                 const levelSelect = document.getElementById('level-select');
                 if (levelSelect) {
                     levelSelect.innerHTML = '<option value="all">すべてのレベル</option>';
-                    const sortedLevels = Array.from(levelSet).sort((a,b) => {
+                    const sortedLevels = Array.from(levelSet).sort((a, b) => {
                         const numA = Number(a); const numB = Number(b);
                         return (!isNaN(numA) && !isNaN(numB)) ? numA - numB : a.localeCompare(b);
                     });
@@ -118,10 +118,10 @@ function startReviewMode() {
     isReviewMode = true;
     currentQuestions = [...mistakes];
     shuffleArray(currentQuestions);
-    
+
     document.getElementById('setup-area').style.display = 'none';
     document.getElementById('app-area').style.display = 'block';
-    
+
     currentIndex = 0;
     correctCount = 0;
     displayQuestion();
@@ -164,7 +164,7 @@ function parseCSV(text) {
     let curRow = [];
     let curCell = '';
     let inQuotes = false;
-    
+
     for (let i = 0; i < text.length; i++) {
         const c = text[i];
         const nextC = text[i + 1];
@@ -224,10 +224,10 @@ function startQuiz() {
     const file = fileInput.files[0];
     const reader = new FileReader();
 
-    reader.onload = function(e) {
+    reader.onload = function (e) {
         const text = e.target.result;
         const rows = parseCSV(text);
-        
+
         allQuestions = [];
         // 1行目はヘッダーとみなし、2行目から処理
         for (let i = 1; i < rows.length; i++) {
@@ -250,7 +250,7 @@ function startQuiz() {
         startQuizWithQuestions(selectedLevel, selectedFormat, filterTags);
     };
 
-    reader.onerror = function() {
+    reader.onerror = function () {
         errorMsg.textContent = "ファイルの読み込みに失敗しました。";
         errorMsg.style.display = 'inline-block';
     };
@@ -293,7 +293,7 @@ function startQuizWithQuestions(selectedLevel, selectedFormat, filterTags) {
 
     document.getElementById('setup-area').style.display = 'none';
     document.getElementById('app-area').style.display = 'block';
-    
+
     currentIndex = 0;
     correctCount = 0;
     isReviewMode = false;
@@ -302,7 +302,7 @@ function startQuizWithQuestions(selectedLevel, selectedFormat, filterTags) {
 
 function displayQuestion() {
     const q = currentQuestions[currentIndex];
-    
+
     document.getElementById('progress').textContent = `問題 ${currentIndex + 1} / ${currentQuestions.length}`;
     document.getElementById('format-badge').textContent = q.format;
     document.getElementById('level-badge').textContent = `レベル ${q.level}`;
@@ -310,7 +310,7 @@ function displayQuestion() {
     document.getElementById('explanation-area').style.display = 'none';
     document.getElementById('check-btn').style.display = 'inline-block';
     document.getElementById('next-btn').style.display = 'none';
-    
+
     const qTextEl = document.getElementById('question-text');
     const inputArea = document.getElementById('input-area');
     inputArea.innerHTML = '';
@@ -352,15 +352,15 @@ function displayQuestion() {
 // 記号類をすべて無視し、全角半角の違いも吸収する強力なサニタイズ
 function sanitize(str) {
     if (!str) return "";
-    return str.replace(/[Ａ-Ｚａ-ｚ０-９]/g, function(s) {
-                  return String.fromCharCode(s.charCodeAt(0) - 0xFEE0);
-              })
-              .toLowerCase()
-              // アポストロフィやあらゆる記号を削除して純粋な文字比較にする
-              .replace(/[\.\?\,!！\-・‘’´`"“”]/g, '')
-              .replace(/　/g, ' ')
-              .replace(/\s+/g, ' ')
-              .trim();
+    return str.replace(/[Ａ-Ｚａ-ｚ０-９]/g, function (s) {
+        return String.fromCharCode(s.charCodeAt(0) - 0xFEE0);
+    })
+        .toLowerCase()
+        // アポストロフィやあらゆる記号を削除して純粋な文字比較にする
+        .replace(/[\.\?\,!！\-・‘’´`"“”]/g, '')
+        .replace(/　/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
 }
 
 function checkAnswer() {
@@ -382,21 +382,10 @@ function checkAnswer() {
         userAnswer = inputEl ? inputEl.value : "";
     }
 
-    // --- 正解判定とテキスト作成 ---
+    // --- 正解判定 ---
     const cleanUser = sanitize(userAnswer);
     const cleanCorrect = sanitize(q.answer);
-    
-    // 和文英訳（自己採点）の場合は、ここでは正解判定を行わない
-    const isSelfGradeFormat = (q.format === "和文英訳");
-    let isCorrect = false;
-
-    if (!isSelfGradeFormat) {
-        isCorrect = (cleanUser === cleanCorrect);
-        // 穴埋め問題の救済処理
-        if (!isCorrect && (q.format === "穴埋め" || q.format === "英単語") && cleanUser.includes(cleanCorrect) && cleanUser.length > cleanCorrect.length) {
-            isCorrect = true; 
-        }
-    }
+    const isCorrect = (cleanUser === cleanCorrect);
 
     // --- 表示・音声用の正解テキスト作成 ---
     const choiceRegex = /\([^)ぁ-んァ-ン一-龥]*?\/[^)ぁ-んァ-ン一-龥]*?\)/g;
@@ -417,23 +406,18 @@ function checkAnswer() {
     let answerSentenceHtml = "";
 
     // 正解表示を「書き換え・補完」ではなく「直接表示」にする形式の判定
-    const usePlainAnswerDisplay = isSelfGradeFormat || 
-                                 ["誤文訂正", "書き換え", "Q&A作成"].includes(q.format);
+    const usePlainAnswerDisplay = ["和文英訳", "誤文訂正", "書き換え", "Q&A作成"].includes(q.format);
 
     if (usePlainAnswerDisplay) {
-        // 指定された形式はCSVの正解をそのまま使う
         englishText = q.answer;
         answerSentenceHtml = `<span class="highlight-answer">${q.answer}</span>`;
     } else {
-        // 穴埋め、選択、英単語などは問題文の ( ) や [ ] を置換して「文」を再現する
-        // 音声読み上げ用
         englishText = q.text.replace(choiceRegex, q.answer);
         englishText = replaceBlanksByWord(englishText, w => w);
         englishText = englishText.replace(/\[\s*.*?\s*\]/g, q.answer);
         englishText = englishText.replace(/\([^)]*[ぁ-んァ-ン一-龥]+[^)]*\)/g, '').trim();
         if (!englishText || englishText.length < 2) englishText = q.answer;
 
-        // 画面表示用
         answerSentenceHtml = q.text.replace(choiceRegex, `<span class="highlight-answer">${q.answer}</span>`);
         answerSentenceHtml = replaceBlanksByWord(answerSentenceHtml, w => `<span class="highlight-answer">${w}</span>`);
         answerSentenceHtml = answerSentenceHtml.replace(/\[\s*.*?\s*\]/g, `<span class="highlight-answer">${q.answer}</span>`);
@@ -445,36 +429,20 @@ function checkAnswer() {
 
     const resultMsg = document.getElementById('result-message');
     const expArea = document.getElementById('explanation-area');
-    
-    if (isSelfGradeFormat) {
-        resultMsg.innerHTML = `<div class="result-correct" style="color: #ffeb3b;">📝 お手本を確認して自己採点してください</div>`;
-        // 自己採点ボタンを追加
-        const selfGradeHtml = `
-            <div id="self-grade-container">
-                <div class="result-sentence" style="margin-bottom: 10px;">お手本: ${answerSentenceHtml}</div>
-                <div class="self-grade-area">
-                    <div class="self-grade-btn self-grade-correct" onclick="submitSelfGrade(true)">⭕ 正解にする</div>
-                    <div class="self-grade-btn self-grade-incorrect" onclick="submitSelfGrade(false)">❌ 不正解にする</div>
-                </div>
-            </div>
-        `;
-        resultMsg.innerHTML += selfGradeHtml;
-        document.getElementById('next-btn').style.display = 'none';
+
+    if (isCorrect) {
+        correctCount++;
+        resultMsg.innerHTML = `<div class="result-correct">⭕ 正解！</div>`;
+        mistakes = mistakes.filter(m => m.id !== q.id);
     } else {
-        if (isCorrect) {
-            correctCount++;
-            resultMsg.innerHTML = `<div class="result-correct">⭕ 正解！</div>`;
-            mistakes = mistakes.filter(m => m.id !== q.id);
-        } else {
-            resultMsg.innerHTML = `
-                <div class="result-incorrect">❌ 不正解</div>
-                <div class="result-sentence">正解: ${answerSentenceHtml}</div>
-            `;
-            if (!mistakes.some(m => m.id === q.id)) mistakes.push(q);
-        }
-        localStorage.setItem('english_quiz_mistakes', JSON.stringify(mistakes));
-        document.getElementById('next-btn').style.display = 'inline-block';
+        resultMsg.innerHTML = `
+            <div class="result-incorrect">❌ 不正解</div>
+            <div class="result-sentence">正解: ${answerSentenceHtml}</div>
+        `;
+        if (!mistakes.some(m => m.id === q.id)) mistakes.push(q);
     }
+    localStorage.setItem('english_quiz_mistakes', JSON.stringify(mistakes));
+    document.getElementById('next-btn').style.display = 'inline-block';
 
     // 解説と音声ボタン
     const escapedText = englishText.replace(/'/g, "\\'");
@@ -486,32 +454,9 @@ function checkAnswer() {
         </div>
     `;
 
-    expArea.innerHTML = `<strong style="font-size: 1.1em; color: #ffeb3b;">解説:</strong><br><div style="margin-top: 5px; margin-bottom: 5px;">${q.exp}</div>${playBtnsHtml}`;
+    expArea.innerHTML = `<strong style="font-size: 1.1em; color: #ffeb3b;">解説:</strong><br><div style="margin-top: 5px; margin-bottom: 5px;">${q.explanation}</div>${playBtnsHtml}`;
     expArea.style.display = 'block';
     document.getElementById('check-btn').style.display = 'none';
-}
-
-function submitSelfGrade(isCorrect) {
-    const q = currentQuestions[currentIndex];
-    const resultMsg = document.getElementById('result-message');
-    
-    if (isCorrect) {
-        correctCount++;
-        mistakes = mistakes.filter(m => m.id !== q.id);
-    } else {
-        if (!mistakes.some(m => m.id === q.id)) mistakes.push(q);
-    }
-    localStorage.setItem('english_quiz_mistakes', JSON.stringify(mistakes));
-
-    // ボタンを隠して結果を表示
-    const container = document.getElementById('self-grade-container');
-    if (container) container.style.display = 'none';
-    
-    resultMsg.innerHTML = isCorrect ? 
-        `<div class="result-correct">⭕ 自己採点：正解！</div>` : 
-        `<div class="result-incorrect">❌ 自己採点：不正解</div>`;
-    
-    document.getElementById('next-btn').style.display = 'inline-block';
 }
 
 function getRankData(accuracy) {
@@ -605,7 +550,7 @@ function nextQuestion() {
 }
 
 // Enterキーで「解答する」および「次の問題へ」を実行するショートカット
-document.addEventListener('keydown', function(event) {
+document.addEventListener('keydown', function (event) {
     if (event.key === 'Enter') {
         // ボタンにフォーカスがある場合は、ブラウザ標準のクリック動作と重複させない
         if (document.activeElement.tagName === 'BUTTON') return;
@@ -630,21 +575,21 @@ function playAudio(text, rate = 1.0) {
         alert("お使いのブラウザは音声読み上げに対応していません。");
         return;
     }
-    
+
     // 再生中の音声をキャンセル
     window.speechSynthesis.cancel();
-    
+
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.lang = 'en-US';
     utterance.rate = rate;
-    
+
     // 可能であればネイティブに近くて自然なオンライン音声を探す
     const voices = window.speechSynthesis.getVoices();
     const onlineVoice = voices.find(v => v.lang === 'en-US' && (v.name.includes('Online') || v.name.includes('Google')));
     if (onlineVoice) {
         utterance.voice = onlineVoice;
     }
-    
+
     window.speechSynthesis.speak(utterance);
 }
 
@@ -653,4 +598,4 @@ if ('speechSynthesis' in window) {
     window.speechSynthesis.onvoiceschanged = () => {
         window.speechSynthesis.getVoices();
     };
-}
+}
