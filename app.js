@@ -241,7 +241,7 @@ function startQuiz() {
                 format: r[3],
                 text: r[4],
                 answer: r[5],
-                exp: r[6],
+                explanation: r[6],
                 tags: r[8] || ""
             });
         }
@@ -454,7 +454,7 @@ function checkAnswer() {
         </div>
     `;
 
-    expArea.innerHTML = `<strong style="font-size: 1.1em; color: #ffeb3b;">解説:</strong><br><div style="margin-top: 5px; margin-bottom: 5px;">${q.explanation}</div>${playBtnsHtml}`;
+    expArea.innerHTML = `<strong style="font-size: 1.1em; color: #ffeb3b;">解説:</strong><br><div style="margin-top: 5px; margin-bottom: 5px;">${q.explanation || q.exp || "解説はありません。"}</div>${playBtnsHtml}`;
     expArea.style.display = 'block';
     document.getElementById('check-btn').style.display = 'none';
 }
