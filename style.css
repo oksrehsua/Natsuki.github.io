@@ -432,3 +432,24 @@ select:focus, input:focus {
     transform: translate(3px, 3px);
     box-shadow: 1px 1px 0px #111;
 }
+
+/* ---- 自己採点用チェックボックススタイル ---- */
+#later-check {
+    accent-color: #ff0055; /* チェック時の色をホットピンクに */
+    transform: scale(1.5);
+    margin-right: 10px;
+}
+
+label[for="later-check"] {
+    font-size: 1.1em;
+    user-select: none;
+    transition: color 0.2s;
+    cursor: pointer;
+    font-weight: bold;
+    color: #ffeb3b; /* 初期状態は黄色 */
+}
+
+#later-check:checked + label {
+    color: #ff0055 !important;
+    text-shadow: 0 0 5px rgba(255, 0, 85, 0.5);
+}

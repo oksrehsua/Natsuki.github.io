@@ -308,7 +308,9 @@ function displayQuestion() {
     document.getElementById('level-badge').textContent = `レベル ${q.level}`;
     document.getElementById('result-message').textContent = '';
     document.getElementById('explanation-area').style.display = 'none';
-    document.getElementById('check-btn').style.display = 'inline-block';
+    const checkBtn = document.getElementById('check-btn');
+    checkBtn.textContent = "解答する";
+    checkBtn.style.display = 'inline-block';
     document.getElementById('next-btn').style.display = 'none';
 
     const qTextEl = document.getElementById('question-text');
@@ -329,8 +331,11 @@ function displayQuestion() {
         }
     } else if (q.format === "穴埋め" || q.format === "英単語") {
         const parts = q.text.split('( )');
-        // IDの重複バグを修正（classで指定するように変更）
         qTextEl.innerHTML = parts.join('<input type="text" class="text-answer inline-input" autocomplete="off">');
+    } else if (q.format === "日本語訳") {
+        qTextEl.textContent = q.text;
+        document.getElementById('check-btn').textContent = "答えを見る";
+        // 入力欄は不要
     } else {
         qTextEl.textContent = q.text;
         const input = document.createElement('input');
@@ -430,6 +435,34 @@ function checkAnswer() {
     const resultMsg = document.getElementById('result-message');
     const expArea = document.getElementById('explanation-area');
 
+    if (q.format === "日本語訳") {
+        // 日本語訳モードの場合は、判定をスキップして答えを表示
+        resultMsg.innerHTML = `<div class="result-sentence">正解: <span class="highlight-answer">${q.answer}</span></div>`;
+        
+        // 音声ボタンと「後で確認」チェックボックスを表示
+        const escapedText = englishText.replace(/'/g, "\\'");
+        const playBtnsHtml = `
+            <div style="display: flex; gap: 10px; margin-top: 5px; flex-wrap: wrap;">
+                <button onclick="playAudio('${escapedText}', 1.0)" class="play-audio-btn">🔊 普通 (1.0x)</button>
+                <button onclick="playAudio('${escapedText}', 0.75)" class="play-audio-btn play-audio-btn-mid">🐢 ちょっとゆっくり (0.75x)</button>
+                <button onclick="playAudio('${escapedText}', 0.5)" class="play-audio-btn play-audio-btn-slow">🐢 すごくゆっくり (0.5x)</button>
+            </div>
+        `;
+        
+        const reviewCheckHtml = `
+            <div style="margin-top: 15px; padding: 10px; background: #222; border: 1px solid #444; border-radius: 8px; display: flex; align-items: center; gap: 10px;">
+                <input type="checkbox" id="later-check" style="width: 20px; height: 20px; cursor: pointer;">
+                <label for="later-check" style="cursor: pointer; font-weight: bold; color: #ffeb3b;">後で確認（チェックを入れると不正解扱い）</label>
+            </div>
+        `;
+
+        expArea.innerHTML = `<strong style="font-size: 1.1em; color: #ffeb3b;">解説:</strong><br><div style="margin-top: 5px; margin-bottom: 5px;">${q.explanation || q.exp || "解説はありません。"}</div>${playBtnsHtml}${reviewCheckHtml}`;
+        expArea.style.display = 'block';
+        document.getElementById('check-btn').style.display = 'none';
+        document.getElementById('next-btn').style.display = 'inline-block';
+        return;
+    }
+
     if (isCorrect) {
         correctCount++;
         resultMsg.innerHTML = `<div class="result-correct">⭕ 正解！</div>`;
@@ -520,6 +553,21 @@ function getRankData(accuracy) {
 }
 
 function nextQuestion() {
+    // 現在の問題の評価を確定させる（日本語訳モードなどの後判定用）
+    const q = currentQuestions[currentIndex];
+    if (q.format === "日本語訳") {
+        const laterCheck = document.getElementById('later-check');
+        if (laterCheck && laterCheck.checked) {
+            // チェックが入っていれば不正解扱い
+            if (!mistakes.some(m => m.id === q.id)) mistakes.push(q);
+        } else {
+            // チェックがなければ正解扱い
+            correctCount++;
+            mistakes = mistakes.filter(m => m.id !== q.id);
+        }
+        localStorage.setItem('english_quiz_mistakes', JSON.stringify(mistakes));
+    }
+
     currentIndex++;
     if (currentIndex < currentQuestions.length) {
         displayQuestion();
