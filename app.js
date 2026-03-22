@@ -386,11 +386,11 @@ function checkAnswer() {
     const cleanUser = sanitize(userAnswer);
     const cleanCorrect = sanitize(q.answer);
     
-    // 自由英作文（自己採点）の場合は、ここでは正解判定を行わない
-    const isFreeFormat = (q.format === "自由英作文");
+    // 和文英訳（自己採点）の場合は、ここでは正解判定を行わない
+    const isSelfGradeFormat = (q.format === "和文英訳");
     let isCorrect = false;
 
-    if (!isFreeFormat) {
+    if (!isSelfGradeFormat) {
         isCorrect = (cleanUser === cleanCorrect);
         // 穴埋め問題の救済処理
         if (!isCorrect && (q.format === "穴埋め" || q.format === "英単語") && cleanUser.includes(cleanCorrect) && cleanUser.length > cleanCorrect.length) {
@@ -416,8 +416,8 @@ function checkAnswer() {
     let englishText = "";
     let answerSentenceHtml = "";
 
-    if (isFreeFormat) {
-        // 自由英作文はCSVの正解をそのまま使う
+    if (isSelfGradeFormat) {
+        // 和文英訳はCSVの正解をそのまま使う
         englishText = q.answer;
         answerSentenceHtml = `<span class="highlight-answer">${q.answer}</span>`;
     } else {
@@ -441,7 +441,7 @@ function checkAnswer() {
     const resultMsg = document.getElementById('result-message');
     const expArea = document.getElementById('explanation-area');
     
-    if (isFreeFormat) {
+    if (isSelfGradeFormat) {
         resultMsg.innerHTML = `<div class="result-correct" style="color: #ffeb3b;">📝 お手本を確認して自己採点してください</div>`;
         // 自己採点ボタンを追加
         const selfGradeHtml = `
