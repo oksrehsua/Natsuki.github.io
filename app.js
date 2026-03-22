@@ -77,25 +77,33 @@ async function handleFileSelect(files) {
 
     for (const file of csvFiles) {
         try {
+            console.log(`Reading file: ${file.name}`);
             const text = await readFileAsText(file);
             const rows = parseCSV(text);
-            
-            // ヘッダーチェック（最低限 item_id があるか）
-            if (rows.length > 0 && Array.isArray(rows[0]) && rows[0][0].toLowerCase() === 'item_id') {
-                for (let i = 1; i < rows.length; i++) {
-                    const r = rows[i];
-                    if (r.length < 7) continue;
-                    allQuestions.push({
-                        id: r[0],
-                        category: r[1],
-                        level: r[2],
-                        format: r[3],
-                        text: r[4],
-                        answer: r[5],
-                        explanation: r[6],
-                        tags: r[8] || "",
-                        source: file.name // データ出所を記録
-                    });
+
+            if (rows.length > 0 && Array.isArray(rows[0])) {
+                // BOM（Byte Order Mark）を削除し、トリムして小文字で比較
+                const firstCell = rows[0][0].replace(/^\ufeff/, '').trim().toLowerCase();
+                console.log(`First cell of ${file.name}: "${firstCell}"`);
+
+                if (firstCell === 'item_id') {
+                    for (let i = 1; i < rows.length; i++) {
+                        const r = rows[i];
+                        if (r.length < 7) continue;
+                        allQuestions.push({
+                            id: r[0],
+                            category: r[1],
+                            level: r[2],
+                            format: r[3],
+                            text: r[4],
+                            answer: r[5],
+                            explanation: r[6],
+                            tags: r[8] || "",
+                            source: file.name
+                        });
+                    }
+                } else {
+                    console.warn(`Skipping ${file.name}: Missing "item_id" header.`);
                 }
             }
             loadedCount++;
@@ -402,8 +410,10 @@ function sanitize(str) {
         return String.fromCharCode(s.charCodeAt(0) - 0xFEE0);
     })
         .toLowerCase()
-        // アポストロフィやあらゆる記号を削除して純粋な文字比較にする
-        .replace(/[\.\?\,!！\-・‘’´`"“”]/g, '')
+        // カンマやスラッシュは区切り文字としてスペースに置換
+        .replace(/[\/,\,]/g, ' ')
+        // その他の記号は削除
+        .replace(/[\.\?!！\-・‘’´`"“”]/g, '')
         .replace(/　/g, ' ')
         .replace(/\s+/g, ' ')
         .trim();
@@ -436,7 +446,8 @@ function checkAnswer() {
     // --- 表示・音声用の正解テキスト作成 ---
     const choiceRegex = /\([^)ぁ-んァ-ン一-龥]*?\/[^)ぁ-んァ-ン一-龥]*?\)/g;
     const blankCount = (q.text.match(/\(\s*\)/g) || []).length;
-    const answerWords = q.answer.split(/\s+/);
+    // 区切り文字として / またはカンマ、またはスペースを使用（スラッシュを優先）
+    const answerWords = q.answer.includes('/') ? q.answer.split('/') : q.answer.split(/[\s,]+/);
 
     function replaceBlanksByWord(text, replaceFn) {
         if (blankCount <= 1) return text.replace(/\(\s*\)/g, replaceFn(q.answer));
@@ -479,7 +490,7 @@ function checkAnswer() {
     if (q.format === "日本語訳") {
         // 日本語訳モードの場合は、判定をスキップして答えを表示
         resultMsg.innerHTML = `<div class="result-sentence">正解: <span class="highlight-answer">${q.answer}</span></div>`;
-        
+
         // 音声ボタンと「後で確認」チェックボックスを表示
         const escapedText = englishText.replace(/'/g, "\\'");
         const playBtnsHtml = `
@@ -489,7 +500,7 @@ function checkAnswer() {
                 <button onclick="playAudio('${escapedText}', 0.5)" class="play-audio-btn play-audio-btn-slow">🐢 すごくゆっくり (0.5x)</button>
             </div>
         `;
-        
+
         const reviewCheckHtml = `
             <div style="margin-top: 15px; padding: 10px; background: #222; border: 1px solid #444; border-radius: 8px; display: flex; align-items: center; gap: 10px;">
                 <input type="checkbox" id="later-check" style="width: 20px; height: 20px; cursor: pointer;">
