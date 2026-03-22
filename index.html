@@ -13,8 +13,17 @@
     <h1>英語学習アプリ</h1>
 
     <div id="setup-area" class="container">
-        <p>1. 「問題csv」を選択してください:</p>
-        <input type="file" id="csv-file" accept=".csv">
+        <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
+            <div style="flex: 1; min-width: 200px;">
+                <p>1a. 「問題csv」ファイルを選択:</p>
+                <input type="file" id="csv-file" accept=".csv">
+            </div>
+            <div style="flex: 1; min-width: 200px;">
+                <p>1b. または「フォルダ」を一括選択:</p>
+                <input type="file" id="directory-input" webkitdirectory directory multiple>
+            </div>
+        </div>
+        <div id="loading-status" style="display: none; margin-top: 10px; color: #ffeb3b; font-size: 14px;"></div>
         <div id="loaded-file-indicator" style="display: none; margin-top: 8px; padding: 8px 12px; background: #1a3a1a; border: 1px solid #00e676; border-radius: 8px; color: #00e676; font-size: 14px;"></div>
 
         <p style="margin-top: 15px;">2. 難易度レベルを選択してください:</p>

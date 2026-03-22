@@ -32,86 +32,168 @@ window.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // CSVファイル選択時にタグのプルダウンを更新する
+    // ファイル選択・フォルダ選択のイベントリスナー設定
     const csvFileInput = document.getElementById('csv-file');
-    if (csvFileInput) {
-        csvFileInput.addEventListener('change', function (e) {
-            const file = e.target.files[0];
-            if (!file) return;
-            const reader = new FileReader();
-            reader.onload = function (evt) {
-                const text = evt.target.result;
-                const rows = parseCSV(text);
-                const tagsSet = new Set();
-                const levelSet = new Set();
-                const formatSet = new Set();
+    const directoryInput = document.getElementById('directory-input');
 
+    if (csvFileInput) {
+        csvFileInput.addEventListener('change', (e) => handleFileSelect(e.target.files));
+    }
+    if (directoryInput) {
+        directoryInput.addEventListener('change', (e) => handleFileSelect(e.target.files));
+    }
+});
+
+/**
+ * ファイル選択時の処理（複数ファイル・フォルダ対応）
+ */
+async function handleFileSelect(files) {
+    if (!files || files.length === 0) return;
+
+    const csvFiles = Array.from(files).filter(file => file.name.toLowerCase().endsWith('.csv'));
+    if (csvFiles.length === 0) {
+        alert("CSVファイルが見つかりませんでした。");
+        return;
+    }
+
+    // 容量チェック（1MB = 1024 * 1024 bytes）
+    const totalSize = csvFiles.reduce((sum, file) => sum + file.size, 0);
+    const totalSizeMB = (totalSize / (1024 * 1024)).toFixed(2);
+    if (totalSize > 1024 * 1024) {
+        if (!confirm(`合計 ${csvFiles.length} 個のCSVファイル（計 ${totalSizeMB} MB）が見つかりました。\n読み込みに時間がかかる可能性がありますが、よろしいですか？`)) {
+            return;
+        }
+    }
+
+    const loadingStatus = document.getElementById('loading-status');
+    const indicator = document.getElementById('loaded-file-indicator');
+    if (loadingStatus) {
+        loadingStatus.style.display = 'block';
+        loadingStatus.textContent = "ファイルを読み込み中...";
+    }
+
+    allQuestions = [];
+    let loadedCount = 0;
+
+    for (const file of csvFiles) {
+        try {
+            const text = await readFileAsText(file);
+            const rows = parseCSV(text);
+            
+            // ヘッダーチェック（最低限 item_id があるか）
+            if (rows.length > 0 && Array.isArray(rows[0]) && rows[0][0].toLowerCase() === 'item_id') {
                 for (let i = 1; i < rows.length; i++) {
                     const r = rows[i];
                     if (r.length < 7) continue;
-
-                    // レベルの収集
-                    const level = r[2] ? r[2].trim() : "";
-                    if (level) levelSet.add(level);
-
-                    // 形式の収集
-                    const format = r[3] ? r[3].trim() : "";
-                    if (format) formatSet.add(format);
-
-                    // タグの収集
-                    const tagStr = r[8] || "";
-                    if (tagStr) {
-                        const tags = tagStr.split(',').map(t => t.trim()).filter(t => t);
-                        tags.forEach(t => tagsSet.add(t));
-                    }
-                }
-
-                // レベルのプルダウン更新
-                const levelSelect = document.getElementById('level-select');
-                if (levelSelect) {
-                    levelSelect.innerHTML = '<option value="all">すべてのレベル</option>';
-                    const sortedLevels = Array.from(levelSet).sort((a, b) => {
-                        const numA = Number(a); const numB = Number(b);
-                        return (!isNaN(numA) && !isNaN(numB)) ? numA - numB : a.localeCompare(b);
-                    });
-                    sortedLevels.forEach(lvl => {
-                        const option = document.createElement('option');
-                        option.value = lvl;
-                        option.textContent = !isNaN(Number(lvl)) ? `レベル ${lvl}` : lvl;
-                        levelSelect.appendChild(option);
+                    allQuestions.push({
+                        id: r[0],
+                        category: r[1],
+                        level: r[2],
+                        format: r[3],
+                        text: r[4],
+                        answer: r[5],
+                        explanation: r[6],
+                        tags: r[8] || "",
+                        source: file.name // データ出所を記録
                     });
                 }
+            }
+            loadedCount++;
+            if (loadingStatus) {
+                loadingStatus.textContent = `読み込み中... (${loadedCount} / ${csvFiles.length} ファイル完了)`;
+            }
+        } catch (err) {
+            console.error(`Error reading ${file.name}:`, err);
+        }
+    }
 
-                // 形式のプルダウン更新
-                const formatSelect = document.getElementById('format-select');
-                if (formatSelect) {
-                    formatSelect.innerHTML = '<option value="all">すべての形式</option>';
-                    const sortedFormats = Array.from(formatSet).sort();
-                    sortedFormats.forEach(fmt => {
-                        const option = document.createElement('option');
-                        option.value = fmt;
-                        option.textContent = fmt;
-                        formatSelect.appendChild(option);
-                    });
-                }
+    if (loadingStatus) {
+        loadingStatus.style.display = 'none';
+    }
 
-                // タグのプルダウン更新
-                const tagSelect = document.getElementById('tag-select');
-                if (tagSelect) {
-                    tagSelect.innerHTML = '<option value="">すべてのタグ</option>';
-                    const sortedTags = Array.from(tagsSet).sort();
-                    sortedTags.forEach(tag => {
-                        const option = document.createElement('option');
-                        option.value = tag;
-                        option.textContent = tag;
-                        tagSelect.appendChild(option);
-                    });
-                }
-            };
-            reader.readAsText(file);
+    if (allQuestions.length > 0) {
+        loadedFileName = csvFiles.length === 1 ? csvFiles[0].name : `選択フォルダ (${csvFiles.length} 個のCSV)`;
+        if (indicator) {
+            indicator.textContent = `✅ 読み込み済み: ${loadedFileName}（${allQuestions.length}問）`;
+            indicator.style.display = 'block';
+        }
+        updateFilters(); // プルダウンの更新
+    } else {
+        alert("有効な問題データが見つかりませんでした。CSVのフォーマットを確認してください。");
+    }
+}
+
+/**
+ * FileReaderをPromiseでラップ
+ */
+function readFileAsText(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (e) => resolve(e.target.result);
+        reader.onerror = (e) => reject(e);
+        reader.readAsText(file);
+    });
+}
+
+/**
+ * フィルター（プルダウン）の更新
+ */
+function updateFilters() {
+    const tagsSet = new Set();
+    const levelSet = new Set();
+    const formatSet = new Set();
+
+    allQuestions.forEach(q => {
+        if (q.level) levelSet.add(q.level);
+        if (q.format) formatSet.add(q.format);
+        if (q.tags) {
+            const tags = q.tags.split(',').map(t => t.trim()).filter(t => t);
+            tags.forEach(t => tagsSet.add(t));
+        }
+    });
+
+    // レベル
+    const levelSelect = document.getElementById('level-select');
+    if (levelSelect) {
+        levelSelect.innerHTML = '<option value="all">すべてのレベル</option>';
+        const sortedLevels = Array.from(levelSet).sort((a, b) => {
+            const numA = Number(a); const numB = Number(b);
+            return (!isNaN(numA) && !isNaN(numB)) ? numA - numB : a.localeCompare(b);
+        });
+        sortedLevels.forEach(lvl => {
+            const option = document.createElement('option');
+            option.value = lvl;
+            option.textContent = !isNaN(Number(lvl)) ? `レベル ${lvl}` : lvl;
+            levelSelect.appendChild(option);
         });
     }
-});
+
+    // 形式
+    const formatSelect = document.getElementById('format-select');
+    if (formatSelect) {
+        formatSelect.innerHTML = '<option value="all">すべての形式</option>';
+        const sortedFormats = Array.from(formatSet).sort();
+        sortedFormats.forEach(fmt => {
+            const option = document.createElement('option');
+            option.value = fmt;
+            option.textContent = fmt;
+            formatSelect.appendChild(option);
+        });
+    }
+
+    // タグ
+    const tagSelect = document.getElementById('tag-select');
+    if (tagSelect) {
+        tagSelect.innerHTML = '<option value="">すべてのタグ</option>';
+        const sortedTags = Array.from(tagsSet).sort();
+        sortedTags.forEach(tag => {
+            const option = document.createElement('option');
+            option.value = tag;
+            option.textContent = tag;
+            tagSelect.appendChild(option);
+        });
+    }
+}
 
 function startReviewMode() {
     if (mistakes.length === 0) return;
@@ -201,61 +283,20 @@ function shuffleArray(array) {
 }
 
 function startQuiz() {
-    const fileInput = document.getElementById('csv-file');
     const errorMsg = document.getElementById('setup-error');
     const selectedLevel = document.getElementById('level-select').value;
     const selectedFormat = document.getElementById('format-select').value;
     const tagSelectVal = document.getElementById('tag-select').value.trim().toLowerCase();
     const filterTags = tagSelectVal ? [tagSelectVal] : [];
 
-    // CSVが既に読み込まれていて、新しいファイルが選択されていない場合は再利用
-    if (!fileInput.files.length && allQuestions.length === 0) {
-        errorMsg.textContent = "CSVファイルを選択してください。";
+    if (allQuestions.length === 0) {
+        errorMsg.textContent = "CSVファイルを選択またはフォルダを読み込んでください。";
         errorMsg.style.display = 'inline-block';
         return;
     }
 
-    // 新しいファイルが選択されていない場合は既存データでクイズ開始
-    if (!fileInput.files.length && allQuestions.length > 0) {
-        startQuizWithQuestions(selectedLevel, selectedFormat, filterTags);
-        return;
-    }
-
-    const file = fileInput.files[0];
-    const reader = new FileReader();
-
-    reader.onload = function (e) {
-        const text = e.target.result;
-        const rows = parseCSV(text);
-
-        allQuestions = [];
-        // 1行目はヘッダーとみなし、2行目から処理
-        for (let i = 1; i < rows.length; i++) {
-            const r = rows[i];
-            // 列数が足りない行はスキップ
-            if (r.length < 7) continue;
-            allQuestions.push({
-                id: r[0],
-                category: r[1],
-                level: r[2],
-                format: r[3],
-                text: r[4],
-                answer: r[5],
-                explanation: r[6],
-                tags: r[8] || ""
-            });
-        }
-
-        loadedFileName = file.name;
-        startQuizWithQuestions(selectedLevel, selectedFormat, filterTags);
-    };
-
-    reader.onerror = function () {
-        errorMsg.textContent = "ファイルの読み込みに失敗しました。";
-        errorMsg.style.display = 'inline-block';
-    };
-
-    reader.readAsText(file);
+    errorMsg.style.display = 'none';
+    startQuizWithQuestions(selectedLevel, selectedFormat, filterTags);
 }
 
 function startQuizWithQuestions(selectedLevel, selectedFormat, filterTags) {
