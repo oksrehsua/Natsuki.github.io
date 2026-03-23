@@ -136,10 +136,12 @@ function updateFilters() {
     const tagsSet = new Set();
     const levelSet = new Set();
     const formatSet = new Set();
+    const categorySet = new Set();
 
     allQuestions.forEach(q => {
         if (q.level) levelSet.add(q.level);
         if (q.format) formatSet.add(q.format);
+        if (q.category) categorySet.add(q.category);
         if (q.tags) {
             const tags = q.tags.split(',').map(t => t.trim()).filter(Boolean);
             tags.forEach(t => tagsSet.add(t));
@@ -171,6 +173,18 @@ function updateFilters() {
             option.value = fmt;
             option.textContent = fmt;
             formatSelect.appendChild(option);
+        });
+    }
+
+    const categorySelect = document.getElementById('unit-category-select');
+    if (categorySelect) {
+        categorySelect.innerHTML = '<option value="all">すべての単元（CSVから取得）</option>';
+        const sortedCategories = Array.from(categorySet).sort();
+        sortedCategories.forEach(cat => {
+            const option = document.createElement('option');
+            option.value = cat;
+            option.textContent = cat;
+            categorySelect.appendChild(option);
         });
     }
 
@@ -276,6 +290,7 @@ function startQuiz() {
     const errorMsg = document.getElementById('setup-error');
     const selectedLevel = document.getElementById('level-select').value;
     const selectedFormat = document.getElementById('format-select').value;
+    const selectedCategory = document.getElementById('unit-category-select').value;
     const tagSelectVal = document.getElementById('tag-select').value.trim().toLowerCase();
     const filterTags = tagSelectVal ? [tagSelectVal] : [];
 
@@ -286,21 +301,22 @@ function startQuiz() {
     }
 
     errorMsg.style.display = 'none';
-    startQuizWithQuestions(selectedLevel, selectedFormat, filterTags);
+    startQuizWithQuestions(selectedLevel, selectedFormat, selectedCategory, filterTags);
 }
 
-function startQuizWithQuestions(selectedLevel, selectedFormat, filterTags) {
+function startQuizWithQuestions(selectedLevel, selectedFormat, selectedCategory, filterTags) {
     const errorMsg = document.getElementById('setup-error');
 
     currentQuestions = allQuestions.filter(q => {
         const levelMatch = selectedLevel === 'all' || q.level === selectedLevel;
         const formatMatch = selectedFormat === 'all' || q.format === selectedFormat;
+        const categoryMatch = selectedCategory === 'all' || q.category === selectedCategory;
         let tagMatch = true;
         if (filterTags.length > 0) {
             const lowerQTags = q.tags.toLowerCase();
             tagMatch = filterTags.every(t => lowerQTags.includes(t));
         }
-        return levelMatch && formatMatch && tagMatch;
+        return levelMatch && formatMatch && categoryMatch && tagMatch;
     });
 
     if (currentQuestions.length === 0) {
@@ -658,3 +674,7 @@ if ('speechSynthesis' in window) {
         window.speechSynthesis.getVoices();
     };
 }
+
+
+
+
