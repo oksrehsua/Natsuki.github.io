@@ -1,4 +1,4 @@
-let allQuestions = [];
+﻿let allQuestions = [];
 let currentQuestions = [];
 let currentIndex = 0;
 let correctCount = 0;
@@ -6,11 +6,11 @@ let mistakes = [];
 let isReviewMode = false;
 let loadedFileName = '';
 
-// app-areaの初期HTMLを保持（結果画面で上書きされるため復元用）
 const appAreaOriginalHTML = `
     <div id="progress" style="margin-bottom: 10px; color: #666;"></div>
     <span id="format-badge" class="badge format-badge"></span>
     <span id="level-badge" class="badge level-badge"></span>
+    <span id="unit-category-badge" class="badge unit-category-badge" style="display: none;"></span>
     <h3 id="question-text" style="margin-top: 10px;"></h3>
     <div id="input-area"></div>
     <button id="check-btn" onclick="checkAnswer()">解答する</button>
@@ -32,7 +32,6 @@ window.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // ファイル選択・フォルダ選択のイベントリスナー設定
     const csvFileInput = document.getElementById('csv-file');
     const directoryInput = document.getElementById('directory-input');
 
@@ -44,32 +43,27 @@ window.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-/**
- * ファイル選択時の処理（複数ファイル・フォルダ対応）
- */
 async function handleFileSelect(files) {
     if (!files || files.length === 0) return;
 
     const csvFiles = Array.from(files).filter(file => file.name.toLowerCase().endsWith('.csv'));
     if (csvFiles.length === 0) {
-        alert("CSVファイルが見つかりませんでした。");
+        alert('CSVファイルが見つかりませんでした。');
         return;
     }
 
-    // 容量チェック（1MB = 1024 * 1024 bytes）
     const totalSize = csvFiles.reduce((sum, file) => sum + file.size, 0);
     const totalSizeMB = (totalSize / (1024 * 1024)).toFixed(2);
     if (totalSize > 1024 * 1024) {
-        if (!confirm(`合計 ${csvFiles.length} 個のCSVファイル（計 ${totalSizeMB} MB）が見つかりました。\n読み込みに時間がかかる可能性がありますが、よろしいですか？`)) {
-            return;
-        }
+        const ok = confirm(`合計 ${csvFiles.length} 個・${totalSizeMB} MB のCSVを読み込みます。\n読み込みに少し時間がかかる可能性がありますが、続けますか？`);
+        if (!ok) return;
     }
 
     const loadingStatus = document.getElementById('loading-status');
     const indicator = document.getElementById('loaded-file-indicator');
     if (loadingStatus) {
         loadingStatus.style.display = 'block';
-        loadingStatus.textContent = "ファイルを読み込み中...";
+        loadingStatus.textContent = 'ファイルを読み込み中...';
     }
 
     allQuestions = [];
@@ -77,35 +71,33 @@ async function handleFileSelect(files) {
 
     for (const file of csvFiles) {
         try {
-            console.log(`Reading file: ${file.name}`);
             const text = await readFileAsText(file);
             const rows = parseCSV(text);
 
             if (rows.length > 0 && Array.isArray(rows[0])) {
-                // BOM（Byte Order Mark）を削除し、トリムして小文字で比較
                 const firstCell = rows[0][0].replace(/^\ufeff/, '').trim().toLowerCase();
-                console.log(`First cell of ${file.name}: "${firstCell}"`);
-
                 if (firstCell === 'item_id') {
                     for (let i = 1; i < rows.length; i++) {
                         const r = rows[i];
                         if (r.length < 7) continue;
                         allQuestions.push({
                             id: r[0],
-                            category: r[1],
-                            level: r[2],
-                            format: r[3],
-                            text: r[4],
-                            answer: r[5],
-                            explanation: r[6],
-                            tags: r[8] || "",
+                            category: r[1] || '',
+                            level: r[2] || '',
+                            format: r[3] || '',
+                            text: r[4] || '',
+                            answer: r[5] || '',
+                            explanation: r[6] || '',
+                            learningPoint: r[7] || '',
+                            tags: r[8] || '',
                             source: file.name
                         });
                     }
                 } else {
-                    console.warn(`Skipping ${file.name}: Missing "item_id" header.`);
+                    console.warn(`Skipping ${file.name}: Missing item_id header.`);
                 }
             }
+
             loadedCount++;
             if (loadingStatus) {
                 loadingStatus.textContent = `読み込み中... (${loadedCount} / ${csvFiles.length} ファイル完了)`;
@@ -122,18 +114,15 @@ async function handleFileSelect(files) {
     if (allQuestions.length > 0) {
         loadedFileName = csvFiles.length === 1 ? csvFiles[0].name : `選択フォルダ (${csvFiles.length} 個のCSV)`;
         if (indicator) {
-            indicator.textContent = `✅ 読み込み済み: ${loadedFileName}（${allQuestions.length}問）`;
+            indicator.textContent = `読み込み済み: ${loadedFileName}（${allQuestions.length}問）`;
             indicator.style.display = 'block';
         }
-        updateFilters(); // プルダウンの更新
+        updateFilters();
     } else {
-        alert("有効な問題データが見つかりませんでした。CSVのフォーマットを確認してください。");
+        alert('有効な問題データが見つかりませんでした。CSVの形式を確認してください。');
     }
 }
 
-/**
- * FileReaderをPromiseでラップ
- */
 function readFileAsText(file) {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
@@ -143,9 +132,6 @@ function readFileAsText(file) {
     });
 }
 
-/**
- * フィルター（プルダウン）の更新
- */
 function updateFilters() {
     const tagsSet = new Set();
     const levelSet = new Set();
@@ -155,17 +141,17 @@ function updateFilters() {
         if (q.level) levelSet.add(q.level);
         if (q.format) formatSet.add(q.format);
         if (q.tags) {
-            const tags = q.tags.split(',').map(t => t.trim()).filter(t => t);
+            const tags = q.tags.split(',').map(t => t.trim()).filter(Boolean);
             tags.forEach(t => tagsSet.add(t));
         }
     });
 
-    // レベル
     const levelSelect = document.getElementById('level-select');
     if (levelSelect) {
-        levelSelect.innerHTML = '<option value="all">すべてのレベル</option>';
+        levelSelect.innerHTML = '<option value="all">すべてのレベル（CSVから取得）</option>';
         const sortedLevels = Array.from(levelSet).sort((a, b) => {
-            const numA = Number(a); const numB = Number(b);
+            const numA = Number(a);
+            const numB = Number(b);
             return (!isNaN(numA) && !isNaN(numB)) ? numA - numB : a.localeCompare(b);
         });
         sortedLevels.forEach(lvl => {
@@ -176,10 +162,9 @@ function updateFilters() {
         });
     }
 
-    // 形式
     const formatSelect = document.getElementById('format-select');
     if (formatSelect) {
-        formatSelect.innerHTML = '<option value="all">すべての形式</option>';
+        formatSelect.innerHTML = '<option value="all">すべての形式（CSVから取得）</option>';
         const sortedFormats = Array.from(formatSet).sort();
         sortedFormats.forEach(fmt => {
             const option = document.createElement('option');
@@ -189,10 +174,9 @@ function updateFilters() {
         });
     }
 
-    // タグ
     const tagSelect = document.getElementById('tag-select');
     if (tagSelect) {
-        tagSelect.innerHTML = '<option value="">すべてのタグ</option>';
+        tagSelect.innerHTML = '<option value="">すべてのタグ（CSVから取得）</option>';
         const sortedTags = Array.from(tagsSet).sort();
         sortedTags.forEach(tag => {
             const option = document.createElement('option');
@@ -218,7 +202,7 @@ function startReviewMode() {
 }
 
 function resetMistakes() {
-    if (confirm("間違えた問題の記録をすべて削除しますか？")) {
+    if (confirm('間違えた問題の記録をすべて削除しますか？')) {
         mistakes = [];
         localStorage.removeItem('english_quiz_mistakes');
         document.getElementById('review-area').style.display = 'none';
@@ -226,29 +210,25 @@ function resetMistakes() {
 }
 
 function resetToSetup() {
-    // app-areaのHTMLを復元（結果画面で上書きされている可能性がある）
     const appArea = document.getElementById('app-area');
     appArea.innerHTML = appAreaOriginalHTML;
     appArea.style.display = 'none';
     document.getElementById('setup-area').style.display = 'block';
 
-    // 読み込み済みファイル名を表示
     if (loadedFileName) {
         const indicator = document.getElementById('loaded-file-indicator');
         if (indicator) {
-            indicator.textContent = `✅ 読み込み済み: ${loadedFileName}（${allQuestions.length}問）`;
+            indicator.textContent = `読み込み済み: ${loadedFileName}（${allQuestions.length}問）`;
             indicator.style.display = 'block';
         }
     }
 
-    // 間違えた問題の表示を更新
     if (mistakes.length > 0) {
         document.getElementById('review-area').style.display = 'block';
         document.getElementById('review-btn').textContent = `間違えた問題に再挑戦する (${mistakes.length}問)`;
     }
 }
 
-// CSVのパース処理（ダブルクォーテーション内のカンマ対応）
 function parseCSV(text) {
     const rows = [];
     let curRow = [];
@@ -259,7 +239,8 @@ function parseCSV(text) {
         const c = text[i];
         const nextC = text[i + 1];
         if (c === '"' && inQuotes && nextC === '"') {
-            curCell += '"'; i++;
+            curCell += '"';
+            i++;
         } else if (c === '"') {
             inQuotes = !inQuotes;
         } else if (c === ',' && !inQuotes) {
@@ -275,14 +256,15 @@ function parseCSV(text) {
             curCell += c;
         }
     }
+
     if (curCell !== '' || curRow.length > 0) {
         curRow.push(curCell);
         rows.push(curRow);
     }
+
     return rows;
 }
 
-// 配列をシャッフル（ランダム化）
 function shuffleArray(array) {
     for (let i = array.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
@@ -298,7 +280,7 @@ function startQuiz() {
     const filterTags = tagSelectVal ? [tagSelectVal] : [];
 
     if (allQuestions.length === 0) {
-        errorMsg.textContent = "CSVファイルを選択またはフォルダを読み込んでください。";
+        errorMsg.textContent = 'CSVファイルを選択、またはフォルダを読み込んでください。';
         errorMsg.style.display = 'inline-block';
         return;
     }
@@ -310,10 +292,9 @@ function startQuiz() {
 function startQuizWithQuestions(selectedLevel, selectedFormat, filterTags) {
     const errorMsg = document.getElementById('setup-error');
 
-    // レベルと形式で絞り込み
     currentQuestions = allQuestions.filter(q => {
-        const levelMatch = selectedLevel === "all" || q.level === selectedLevel;
-        const formatMatch = selectedFormat === "all" || q.format === selectedFormat;
+        const levelMatch = selectedLevel === 'all' || q.level === selectedLevel;
+        const formatMatch = selectedFormat === 'all' || q.format === selectedFormat;
         let tagMatch = true;
         if (filterTags.length > 0) {
             const lowerQTags = q.tags.toLowerCase();
@@ -323,17 +304,15 @@ function startQuizWithQuestions(selectedLevel, selectedFormat, filterTags) {
     });
 
     if (currentQuestions.length === 0) {
-        errorMsg.textContent = "該当するレベルの問題がありません。";
+        errorMsg.textContent = '該当する条件の問題がありません。';
         errorMsg.style.display = 'inline-block';
         return;
     }
 
-    // ランダムに並べ替え
     shuffleArray(currentQuestions);
 
-    // 出題数を絞る
     const countInputVal = document.getElementById('count-input').value;
-    if (countInputVal.trim() !== "") {
+    if (countInputVal.trim() !== '') {
         const count = parseInt(countInputVal, 10);
         if (!isNaN(count) && count > 0) {
             currentQuestions = currentQuestions.slice(0, count);
@@ -352,13 +331,19 @@ function startQuizWithQuestions(selectedLevel, selectedFormat, filterTags) {
 function displayQuestion() {
     const q = currentQuestions[currentIndex];
 
-    document.getElementById('progress').textContent = `問題 ${currentIndex + 1} / ${currentQuestions.length}`;
+    document.getElementById('progress').textContent = '問題 ' + (currentIndex + 1) + ' / ' + currentQuestions.length;
     document.getElementById('format-badge').textContent = q.format;
-    document.getElementById('level-badge').textContent = `レベル ${q.level}`;
+    document.getElementById('level-badge').textContent = 'レベル ' + q.level;
+    const unitBadge = document.getElementById('unit-category-badge');
+    if (unitBadge) {
+        unitBadge.textContent = q.category ? ('単元: ' + q.category) : '';
+        unitBadge.style.display = q.category ? 'inline-block' : 'none';
+    }
+
     document.getElementById('result-message').textContent = '';
     document.getElementById('explanation-area').style.display = 'none';
     const checkBtn = document.getElementById('check-btn');
-    checkBtn.textContent = "解答する";
+    checkBtn.textContent = '解答する';
     checkBtn.style.display = 'inline-block';
     document.getElementById('next-btn').style.display = 'none';
 
@@ -366,7 +351,7 @@ function displayQuestion() {
     const inputArea = document.getElementById('input-area');
     inputArea.innerHTML = '';
 
-    if (q.format === "選択問題") {
+    if (q.format === '選択問題') {
         qTextEl.textContent = q.text;
         const match = q.text.match(/\(\s*(.*?)\s*\)/);
         if (match) {
@@ -378,13 +363,12 @@ function displayQuestion() {
                 inputArea.appendChild(label);
             });
         }
-    } else if (q.format === "穴埋め" || q.format === "英単語") {
+    } else if (q.format === '穴埋め' || q.format === '英単語') {
         const parts = q.text.split('( )');
         qTextEl.innerHTML = parts.join('<input type="text" class="text-answer inline-input" autocomplete="off">');
-    } else if (q.format === "日本語訳") {
+    } else if (q.format === '日本語訳') {
         qTextEl.textContent = q.text;
-        document.getElementById('check-btn').textContent = "答えを見る";
-        // 入力欄は不要
+        checkBtn.textContent = '答えを見る';
     } else {
         qTextEl.textContent = q.text;
         const input = document.createElement('input');
@@ -396,57 +380,48 @@ function displayQuestion() {
         inputArea.appendChild(input);
     }
 
-    // 入力欄があれば自動でフォーカスを当てる
     setTimeout(() => {
         const firstInput = document.querySelector('input[type="text"]');
         if (firstInput) firstInput.focus();
     }, 10);
 }
 
-// 記号類をすべて無視し、全角半角の違いも吸収する強力なサニタイズ
 function sanitize(str) {
-    if (!str) return "";
-    return str.replace(/[Ａ-Ｚａ-ｚ０-９]/g, function (s) {
-        return String.fromCharCode(s.charCodeAt(0) - 0xFEE0);
-    })
+    if (!str) return '';
+    return str
+        .normalize('NFKC')
         .toLowerCase()
-        // カンマやスラッシュは区切り文字としてスペースに置換
-        .replace(/[\/,\,]/g, ' ')
-        // その他の記号は削除
-        .replace(/[\.\?!！\-・‘’´`"“”]/g, '')
-        .replace(/　/g, ' ')
+        .replace(/[\/､,]/g, ' ')
+        .replace(/[\.\?!'"`’‘“”・\-—–]/g, '')
         .replace(/\s+/g, ' ')
         .trim();
 }
 
 function checkAnswer() {
     const q = currentQuestions[currentIndex];
-    let userAnswer = "";
+    let userAnswer = '';
 
-    if (q.format === "選択問題") {
+    if (q.format === '選択問題') {
         const selected = document.querySelector('input[name="answer"]:checked');
-        userAnswer = selected ? selected.value : "";
-    } else if (q.format === "穴埋め" || q.format === "英単語") {
+        userAnswer = selected ? selected.value : '';
+    } else if (q.format === '穴埋め' || q.format === '英単語') {
         const inputs = document.querySelectorAll('.text-answer');
-        let answers = [];
+        const answers = [];
         inputs.forEach(input => {
-            if (input.value.trim() !== "") answers.push(input.value.trim());
+            if (input.value.trim() !== '') answers.push(input.value.trim());
         });
         userAnswer = answers.join(' ');
     } else {
         const inputEl = document.getElementById('text-answer');
-        userAnswer = inputEl ? inputEl.value : "";
+        userAnswer = inputEl ? inputEl.value : '';
     }
 
-    // --- 正解判定 ---
     const cleanUser = sanitize(userAnswer);
     const cleanCorrect = sanitize(q.answer);
     const isCorrect = (cleanUser === cleanCorrect);
 
-    // --- 表示・音声用の正解テキスト作成 ---
-    const choiceRegex = /\([^)ぁ-んァ-ン一-龥]*?\/[^)ぁ-んァ-ン一-龥]*?\)/g;
+    const choiceRegex = /\([^)]*?\/[^)]*?\)/g;
     const blankCount = (q.text.match(/\(\s*\)/g) || []).length;
-    // 区切り文字として / またはカンマ、またはスペースを使用（スラッシュを優先）
     const answerWords = q.answer.includes('/') ? q.answer.split('/') : q.answer.split(/[\s,]+/);
 
     function replaceBlanksByWord(text, replaceFn) {
@@ -459,11 +434,9 @@ function checkAnswer() {
         });
     }
 
-    let englishText = "";
-    let answerSentenceHtml = "";
-
-    // 正解表示を「書き換え・補完」ではなく「直接表示」にする形式の判定
-    const usePlainAnswerDisplay = ["和文英訳", "誤文訂正", "書き換え", "Q&A作成"].includes(q.format);
+    let englishText = '';
+    let answerSentenceHtml = '';
+    const usePlainAnswerDisplay = ['和文英訳', '誤文訂正', '書き換え', 'Q&A作成'].includes(q.format);
 
     if (usePlainAnswerDisplay) {
         englishText = q.answer;
@@ -487,11 +460,9 @@ function checkAnswer() {
     const resultMsg = document.getElementById('result-message');
     const expArea = document.getElementById('explanation-area');
 
-    if (q.format === "日本語訳") {
-        // 日本語訳モードの場合は、判定をスキップして答えを表示
+    if (q.format === '日本語訳') {
         resultMsg.innerHTML = `<div class="result-sentence">正解: <span class="highlight-answer">${q.answer}</span></div>`;
 
-        // 音声ボタンと「後で確認」チェックボックスを表示
         const escapedText = englishText.replace(/'/g, "\\'");
         const playBtnsHtml = `
             <div style="display: flex; gap: 10px; margin-top: 5px; flex-wrap: wrap;">
@@ -504,11 +475,11 @@ function checkAnswer() {
         const reviewCheckHtml = `
             <div style="margin-top: 15px; padding: 10px; background: #222; border: 1px solid #444; border-radius: 8px; display: flex; align-items: center; gap: 10px;">
                 <input type="checkbox" id="later-check" style="width: 20px; height: 20px; cursor: pointer;">
-                <label for="later-check" style="cursor: pointer; font-weight: bold; color: #ffeb3b;">後で確認（チェックを入れると不正解扱い）</label>
+                <label for="later-check" style="cursor: pointer; font-weight: bold; color: #ffeb3b;">後で確認する（チェックを入れると不正解扱い）</label>
             </div>
         `;
 
-        expArea.innerHTML = `<strong style="font-size: 1.1em; color: #ffeb3b;">解説:</strong><br><div style="margin-top: 5px; margin-bottom: 5px;">${q.explanation || q.exp || "解説はありません。"}</div>${playBtnsHtml}${reviewCheckHtml}`;
+        expArea.innerHTML = `<strong style="font-size: 1.1em; color: #ffeb3b;">解説:</strong><br><div style="margin-top: 5px; margin-bottom: 5px;">${q.explanation || q.exp || '解説はありません。'}</div>${playBtnsHtml}${reviewCheckHtml}`;
         expArea.style.display = 'block';
         document.getElementById('check-btn').style.display = 'none';
         document.getElementById('next-btn').style.display = 'inline-block';
@@ -526,10 +497,10 @@ function checkAnswer() {
         `;
         if (!mistakes.some(m => m.id === q.id)) mistakes.push(q);
     }
+
     localStorage.setItem('english_quiz_mistakes', JSON.stringify(mistakes));
     document.getElementById('next-btn').style.display = 'inline-block';
 
-    // 解説と音声ボタン
     const escapedText = englishText.replace(/'/g, "\\'");
     const playBtnsHtml = `
         <div style="display: flex; gap: 10px; margin-top: 5px; flex-wrap: wrap;">
@@ -539,7 +510,7 @@ function checkAnswer() {
         </div>
     `;
 
-    expArea.innerHTML = `<strong style="font-size: 1.1em; color: #ffeb3b;">解説:</strong><br><div style="margin-top: 5px; margin-bottom: 5px;">${q.explanation || q.exp || "解説はありません。"}</div>${playBtnsHtml}`;
+    expArea.innerHTML = `<strong style="font-size: 1.1em; color: #ffeb3b;">解説:</strong><br><div style="margin-top: 5px; margin-bottom: 5px;">${q.explanation || q.exp || '解説はありません。'}</div>${playBtnsHtml}`;
     expArea.style.display = 'block';
     document.getElementById('check-btn').style.display = 'none';
 }
@@ -549,49 +520,49 @@ function getRankData(accuracy) {
         S: {
             rank: 'S', className: 'rank-s', emoji: '🏆', commentColor: '#ffd700',
             comments: [
-                "Flawless! You're a genius!",
-                "Perfect score! Absolutely incredible!",
-                "100%! Nothing can stop you!"
+                'Flawless! You are a genius!',
+                'Perfect score! Absolutely incredible!',
+                '100%! Nothing can stop you!'
             ]
         },
         A: {
-            rank: 'A', className: 'rank-a', emoji: '💪', commentColor: '#00e5ff',
+            rank: 'A', className: 'rank-a', emoji: '🌟', commentColor: '#8cc8ff',
             comments: [
-                "Awesome work! Keep it up!",
-                "So close to perfection! Amazing!",
-                "You're on fire! Great job!"
+                'Awesome work! Keep it up!',
+                'So close to perfection! Amazing!',
+                'You are on fire! Great job!'
             ]
         },
         B: {
-            rank: 'B', className: 'rank-b', emoji: '😊', commentColor: '#00e676',
+            rank: 'B', className: 'rank-b', emoji: '👍', commentColor: '#7dffd7',
             comments: [
-                "Nice job! You're getting there!",
-                "Good effort! Almost there!",
-                "Well done! A little more practice!"
+                'Nice job! You are getting there!',
+                'Good effort! Almost there!',
+                'Well done! A little more practice!'
             ]
         },
         C: {
-            rank: 'C', className: 'rank-c', emoji: '📚', commentColor: '#ffbb00',
+            rank: 'C', className: 'rank-c', emoji: '📘', commentColor: '#ffb14a',
             comments: [
-                "Not bad! Keep studying!",
-                "You can do better! Don't give up!",
-                "Room to grow! Stay focused!"
+                'Not bad! Keep studying!',
+                'You can do better! Don\'t give up!',
+                'Room to grow! Stay focused!'
             ]
         },
         D: {
-            rank: 'D', className: 'rank-d', emoji: '🔥', commentColor: '#ff5577',
+            rank: 'D', className: 'rank-d', emoji: '📝', commentColor: '#ff8d8d',
             comments: [
-                "Review and try again! You got this!",
-                "Don't worry, practice makes perfect!",
-                "Every mistake is a lesson! Keep going!"
+                'Review and try again! You got this!',
+                'Don\'t worry, practice makes perfect!',
+                'Every mistake is a lesson! Keep going!'
             ]
         },
         E: {
-            rank: 'E', className: 'rank-e', emoji: '💡', commentColor: '#aaa',
+            rank: 'E', className: 'rank-e', emoji: '🌱', commentColor: '#ddd',
             comments: [
-                "This is where it all begins!",
-                "The journey of a thousand miles starts here!",
-                "Never give up! You'll get there!"
+                'This is where it all begins!',
+                'The journey of a thousand miles starts here!',
+                'Never give up! You will get there!'
             ]
         }
     };
@@ -605,15 +576,12 @@ function getRankData(accuracy) {
 }
 
 function nextQuestion() {
-    // 現在の問題の評価を確定させる（日本語訳モードなどの後判定用）
     const q = currentQuestions[currentIndex];
-    if (q.format === "日本語訳") {
+    if (q.format === '日本語訳') {
         const laterCheck = document.getElementById('later-check');
         if (laterCheck && laterCheck.checked) {
-            // チェックが入っていれば不正解扱い
             if (!mistakes.some(m => m.id === q.id)) mistakes.push(q);
         } else {
-            // チェックがなければ正解扱い
             correctCount++;
             mistakes = mistakes.filter(m => m.id !== q.id);
         }
@@ -625,34 +593,29 @@ function nextQuestion() {
         displayQuestion();
     } else {
         const accuracy = Math.round((correctCount / currentQuestions.length) * 100) || 0;
-
-        // ランク判定（S～E）
         const rankData = getRankData(accuracy);
         const comment = rankData.comments[Math.floor(Math.random() * rankData.comments.length)];
 
         const resultHtml = `
-            <h3 style="text-align: center; font-size: 24px;">全ての問題が終了しました！</h3>
+            <h3 style="text-align: center; font-size: 24px;">すべての問題が終了しました！</h3>
             <div style="text-align: center; margin: 30px 0;">
                 <div style="font-size: 18px; color: #ddd;">あなたの正答率</div>
-                <div style="font-size: 36px; font-weight: bold; color: #00e5ff; margin-bottom: 20px;">${accuracy}% <span style="font-size: 20px; color: #fff;">(${correctCount}/${currentQuestions.length}問)</span></div>
-                
+                <div style="font-size: 36px; font-weight: bold; color: #8cc8ff; margin-bottom: 20px;">${accuracy}% <span style="font-size: 20px; color: #fff;">(${correctCount}/${currentQuestions.length}問)</span></div>
                 <div style="font-size: 24px; color: #ddd; margin-bottom: 10px;">ランク</div>
                 <div class="rank-badge ${rankData.className}">${rankData.rank}</div>
                 <div class="rank-comment" style="color: ${rankData.commentColor};">${rankData.emoji} ${comment}</div>
-                <div style="margin-top: 20px; font-size: 16px; color: #aaa;">お疲れさまでした！🎉</div>
+                <div style="margin-top: 20px; font-size: 16px; color: #aaa;">お疲れさまでした！</div>
             </div>
             <div style="text-align: center; margin-top: 40px;">
-                <button onclick='resetToSetup()' class='secondary-btn' style='font-size: 20px; padding: 15px 40px; box-shadow: 6px 6px 0px #ffeb3b;'>最初に戻る</button>
+                <button onclick="resetToSetup()" class="secondary-btn" style="font-size: 20px; padding: 15px 40px; box-shadow: 6px 6px 0px #ffeb3b;">最初に戻る</button>
             </div>
         `;
         document.getElementById('app-area').innerHTML = resultHtml;
     }
 }
 
-// Enterキーで「解答する」および「次の問題へ」を実行するショートカット
 document.addEventListener('keydown', function (event) {
     if (event.key === 'Enter') {
-        // ボタンにフォーカスがある場合は、ブラウザ標準のクリック動作と重複させない
         if (document.activeElement.tagName === 'BUTTON') return;
 
         const appArea = document.getElementById('app-area');
@@ -669,21 +632,18 @@ document.addEventListener('keydown', function (event) {
     }
 });
 
-// --- 音声読み上げ機能 (Web Speech API) ---
 function playAudio(text, rate = 1.0) {
     if (!('speechSynthesis' in window)) {
-        alert("お使いのブラウザは音声読み上げに対応していません。");
+        alert('お使いのブラウザは音声読み上げに対応していません。');
         return;
     }
 
-    // 再生中の音声をキャンセル
     window.speechSynthesis.cancel();
 
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.lang = 'en-US';
     utterance.rate = rate;
 
-    // 可能であればネイティブに近くて自然なオンライン音声を探す
     const voices = window.speechSynthesis.getVoices();
     const onlineVoice = voices.find(v => v.lang === 'en-US' && (v.name.includes('Online') || v.name.includes('Google')));
     if (onlineVoice) {
@@ -693,7 +653,6 @@ function playAudio(text, rate = 1.0) {
     window.speechSynthesis.speak(utterance);
 }
 
-// 初回発音の遅延を防ぐために、あらかじめvoiceのリストを読み込んでおく
 if ('speechSynthesis' in window) {
     window.speechSynthesis.onvoiceschanged = () => {
         window.speechSynthesis.getVoices();
