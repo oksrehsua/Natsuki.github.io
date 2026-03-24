@@ -177,14 +177,15 @@ h3 {
 .option-label {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 16px;
     margin: 12px 0;
-    padding: 14px 16px;
+    min-height: 64px;
+    padding: 16px 18px;
     cursor: pointer;
     border: 2px solid rgba(180, 219, 255, 0.9);
     border-radius: var(--radius-md);
     background: linear-gradient(180deg, rgba(8, 10, 18, 0.98) 0%, rgba(2, 3, 6, 0.99) 100%);
-    transition: transform 0.08s steps(2, end), filter 0.08s steps(2, end);
+    transition: transform 0.08s steps(2, end), filter 0.08s steps(2, end), border-color 0.08s steps(2, end), box-shadow 0.08s steps(2, end), background 0.08s steps(2, end);
     font-weight: 700;
     box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.07);
 }
@@ -192,11 +193,22 @@ h3 {
 .option-label:hover {
     transform: translate(-2px, -2px);
     filter: brightness(1.08);
+    border-color: #f3b6d6;
+    box-shadow: inset 0 0 0 2px rgba(243, 182, 214, 0.18), 0 0 0 2px rgba(243, 182, 214, 0.22);
+}
+
+.option-label:has(input[type="radio"]:checked) {
+    border-color: #f8d3e5;
+    background: linear-gradient(180deg, rgba(49, 23, 47, 0.98) 0%, rgba(18, 8, 22, 0.99) 100%);
+    box-shadow: inset 0 0 0 2px rgba(243, 182, 214, 0.24), 0 0 0 2px rgba(243, 182, 214, 0.3);
 }
 
 .option-label input[type="radio"] {
     accent-color: var(--gold);
-    transform: scale(1.15);
+    width: 22px;
+    height: 22px;
+    margin: 0;
+    flex: 0 0 auto;
 }
 
 .word-chip {
@@ -664,6 +676,7 @@ select option:hover {
 
 .option-label {
     line-height: 1.7;
+    font-size: 1.08rem;
 }
 
 .highlight-answer {
