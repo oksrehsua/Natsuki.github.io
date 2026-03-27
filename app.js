@@ -433,8 +433,9 @@ function checkAnswer() {
     }
 
     const cleanUser = sanitize(userAnswer);
-    const cleanCorrect = sanitize(q.answer);
-    const isCorrect = (cleanUser === cleanCorrect);
+    const acceptedAnswers = q.answer.split('/').map(s => sanitize(s)).filter(Boolean);
+    const cleanCorrect = acceptedAnswers[0] || '';
+    const isCorrect = acceptedAnswers.includes(cleanUser);
 
     const choiceRegex = /\([^)]*?\/[^)]*?\)/g;
     const blankCount = (q.text.match(/\(\s*\)/g) || []).length;
@@ -674,6 +675,7 @@ if ('speechSynthesis' in window) {
         window.speechSynthesis.getVoices();
     };
 }
+
 
 
 
