@@ -1,4 +1,4 @@
-﻿@import url('https://fonts.googleapis.com/css2?family=DotGothic16&family=Yusei+Magic&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=DotGothic16&family=Yusei+Magic&display=swap');
 
 :root {
     --bg-top: #020306;
@@ -55,14 +55,35 @@ body::before {
     opacity: 0.28;
 }
 
-h1 {
-    margin: 0 0 24px;
+.title-container {
     text-align: center;
+    margin-bottom: 32px;
+    padding: 10px 0;
+}
+
+h1 {
+    margin: 0;
     font-family: "Yusei Magic", "DotGothic16", sans-serif;
-    font-size: clamp(1.9rem, 4vw, 2.8rem);
-    letter-spacing: 0.08em;
-    color: var(--gold);
-    text-shadow: 3px 3px 0 #8f5b79;
+    font-size: clamp(2.4rem, 6vw, 4.2rem);
+    letter-spacing: 0.12em;
+    color: #ffffff;
+    text-shadow: 
+        3px 3px 0 #ff0055, 
+        6px 6px 0 #000000;
+    line-height: 1.1;
+    transform: perspective(600px) rotateX(10deg);
+}
+
+.subtitle {
+    margin-top: 4px;
+    font-size: 0.85rem;
+    font-weight: bold;
+    letter-spacing: 0.4em;
+    color: #ffeb3b;
+    text-transform: uppercase;
+    opacity: 0.9;
+    font-family: "DotGothic16", sans-serif;
+    text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.5);
 }
 
 .container {

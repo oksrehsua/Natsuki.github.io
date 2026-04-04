@@ -1,4 +1,4 @@
-﻿let allQuestions = [];
+let allQuestions = [];
 let currentQuestions = [];
 let currentIndex = 0;
 let correctCount = 0;
@@ -237,9 +237,14 @@ function resetToSetup() {
         }
     }
 
+    const reviewArea = document.getElementById('review-area');
+    const reviewBtn = document.getElementById('review-btn');
+
     if (mistakes.length > 0) {
-        document.getElementById('review-area').style.display = 'block';
-        document.getElementById('review-btn').textContent = `間違えた問題に再挑戦する (${mistakes.length}問)`;
+        reviewArea.style.display = 'block';
+        reviewBtn.textContent = `間違えた問題に再挑戦する (${mistakes.length}問)`;
+    } else {
+        reviewArea.style.display = 'none';
     }
 }
 
@@ -408,9 +413,19 @@ function sanitize(str) {
         .normalize('NFKC')
         .toLowerCase()
         .replace(/[\/､,]/g, ' ')
-        .replace(/[\.\?!'"`’‘“”・\-—–]/g, '')
+        .replace(/[\.\?!'""`‘“”・\-—–]/g, '')
         .replace(/\s+/g, ' ')
         .trim();
+}
+
+function getAcceptedAnswers(q, blankCount) {
+    const rawAnswer = q.answer || '';
+
+    if ((q.format === '穴埋め' || q.format === '英単語') && blankCount > 1 && rawAnswer.includes('/')) {
+        return [sanitize(rawAnswer.replace(/\s*\/\s*/g, ' '))].filter(Boolean);
+    }
+
+    return rawAnswer.split('/').map(s => sanitize(s)).filter(Boolean);
 }
 
 function checkAnswer() {
@@ -433,12 +448,12 @@ function checkAnswer() {
     }
 
     const cleanUser = sanitize(userAnswer);
-    const acceptedAnswers = q.answer.split('/').map(s => sanitize(s)).filter(Boolean);
+    const blankCount = (q.text.match(/\(\s*\)/g) || []).length;
+    const acceptedAnswers = getAcceptedAnswers(q, blankCount);
     const cleanCorrect = acceptedAnswers[0] || '';
     const isCorrect = acceptedAnswers.includes(cleanUser);
 
     const choiceRegex = /\([^)]*?\/[^)]*?\)/g;
-    const blankCount = (q.text.match(/\(\s*\)/g) || []).length;
     const answerWords = q.answer.includes('/') ? q.answer.split('/') : q.answer.split(/[\s,]+/);
 
     function replaceBlanksByWord(text, replaceFn) {
@@ -483,9 +498,10 @@ function checkAnswer() {
         const escapedText = englishText.replace(/'/g, "\\'");
         const playBtnsHtml = `
             <div style="display: flex; gap: 10px; margin-top: 5px; flex-wrap: wrap;">
-                <button onclick="playAudio('${escapedText}', 1.0)" class="play-audio-btn">🔊 普通 (1.0x)</button>
-                <button onclick="playAudio('${escapedText}', 0.75)" class="play-audio-btn play-audio-btn-mid">🐢 ちょっとゆっくり (0.75x)</button>
-                <button onclick="playAudio('${escapedText}', 0.5)" class="play-audio-btn play-audio-btn-slow">🐢 すごくゆっくり (0.5x)</button>
+                <button onclick="playAudio('${escapedText}', 1.0)" class="play-audio-btn">1.0x</button>
+                <button onclick="playAudio('${escapedText}', 0.75)" class="play-audio-btn play-audio-btn-mid">0.75x</button>
+                <button onclick="playAudio('${escapedText}', 0.5)" class="play-audio-btn play-audio-btn-slow">0.5x</button>
+                <button onclick="playAudio('${escapedText}', 0.25)" class="play-audio-btn play-audio-btn-slow">0.25x</button>
             </div>
         `;
 
@@ -500,6 +516,7 @@ function checkAnswer() {
         expArea.style.display = 'block';
         document.getElementById('check-btn').style.display = 'none';
         document.getElementById('next-btn').style.display = 'inline-block';
+        playAudio(englishText);
         return;
     }
 
@@ -521,15 +538,17 @@ function checkAnswer() {
     const escapedText = englishText.replace(/'/g, "\\'");
     const playBtnsHtml = `
         <div style="display: flex; gap: 10px; margin-top: 5px; flex-wrap: wrap;">
-            <button onclick="playAudio('${escapedText}', 1.0)" class="play-audio-btn">🔊 普通 (1.0x)</button>
-            <button onclick="playAudio('${escapedText}', 0.75)" class="play-audio-btn play-audio-btn-mid">🐢 ちょっとゆっくり (0.75x)</button>
-            <button onclick="playAudio('${escapedText}', 0.5)" class="play-audio-btn play-audio-btn-slow">🐢 すごくゆっくり (0.5x)</button>
+            <button onclick="playAudio('${escapedText}', 1.0)" class="play-audio-btn">1.0x</button>
+            <button onclick="playAudio('${escapedText}', 0.75)" class="play-audio-btn play-audio-btn-mid">0.75x</button>
+            <button onclick="playAudio('${escapedText}', 0.5)" class="play-audio-btn play-audio-btn-slow">0.5x</button>
+            <button onclick="playAudio('${escapedText}', 0.25)" class="play-audio-btn play-audio-btn-slow">0.25x</button>
         </div>
     `;
 
     expArea.innerHTML = `<strong style="font-size: 1.1em; color: #ffeb3b;">解説:</strong><br><div style="margin-top: 5px; margin-bottom: 5px;">${q.explanation || q.exp || '解説はありません。'}</div>${playBtnsHtml}`;
     expArea.style.display = 'block';
     document.getElementById('check-btn').style.display = 'none';
+    playAudio(englishText);
 }
 
 function getRankData(accuracy) {
@@ -649,7 +668,7 @@ document.addEventListener('keydown', function (event) {
     }
 });
 
-function playAudio(text, rate = 1.0) {
+function playAudio(text, rate = 1.0, count = 3) {
     if (!('speechSynthesis' in window)) {
         alert('お使いのブラウザは音声読み上げに対応していません。');
         return;
@@ -657,17 +676,32 @@ function playAudio(text, rate = 1.0) {
 
     window.speechSynthesis.cancel();
 
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = 'en-US';
-    utterance.rate = rate;
-
+    let currentCount = 0;
     const voices = window.speechSynthesis.getVoices();
     const onlineVoice = voices.find(v => v.lang === 'en-US' && (v.name.includes('Online') || v.name.includes('Google')));
-    if (onlineVoice) {
-        utterance.voice = onlineVoice;
+
+    function speak() {
+        if (currentCount >= count) return;
+
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = 'en-US';
+        utterance.rate = rate;
+
+        if (onlineVoice) {
+            utterance.voice = onlineVoice;
+        }
+
+        utterance.onend = () => {
+            currentCount++;
+            if (currentCount < count) {
+                setTimeout(speak, 400); // 0.4秒の待機
+            }
+        };
+
+        window.speechSynthesis.speak(utterance);
     }
 
-    window.speechSynthesis.speak(utterance);
+    speak();
 }
 
 if ('speechSynthesis' in window) {
